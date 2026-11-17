@@ -149,6 +149,76 @@ export const INITIAL_CREATOR_PROFILE = {
   ]
 };
 
+// Leader Review Desk Profile & Metrics
+export const INITIAL_LEADER_PROFILE = {
+  id: "leader-001",
+  name: "Editorial Review Lead",
+  role: "Senior Content Reviewer & Brand Editor",
+  department: "Global Communications & Editorial",
+  monogram: "EL",
+  authorityLevel: "Level 2 — Editorial Publication Clearance",
+  reviewsCompleted: 38,
+  averageTurnaround: "1.2h",
+  approvalRate: 89.5,
+  qualityRatingGiven: 4.8,
+  badges: [
+    { id: "lb1", title: "SLA Verification Lead", level: "Platinum", description: "Verified 100+ technical claims against cloud SLA ground truth" },
+    { id: "lb2", title: "Editorial Guardian", level: "Gold", description: "Over 200 drafts approved with zero post-publication retractions" }
+  ],
+  recentReviewsAwarded: [
+    {
+      id: "rev-lead-1",
+      postTitle: "Enterprise Whitepaper: Modern Cloud Architecture",
+      rating: 5,
+      tag: "Exceeds Standard",
+      date: "2026-11-17",
+      note: "Exceptional adherence to Acme Cloud SLA specifications (§3.2). Nuanced, measured tone."
+    },
+    {
+      id: "rev-lead-2",
+      postTitle: "Q3 High-Throughput Engine Launch",
+      rating: 4,
+      tag: "Compliant",
+      date: "2026-11-12",
+      note: "Good technical precision; quickly resolved initial superlative flag via Gemini 1-click fix."
+    }
+  ]
+};
+
+// Manager Brand Policy Authority Profile
+export const INITIAL_MANAGER_PROFILE = {
+  id: "manager-001",
+  name: "Chief Brand Governance Officer",
+  role: "Brand Policy Authority & Head of Governance",
+  department: "Executive Strategy & Brand Compliance",
+  monogram: "BM",
+  authorityLevel: "Level 3 — Final Policy Sign-Off & Vault Administrator",
+  activeBrandKits: 1,
+  rulesAuthored: 6,
+  systemHealthScore: 94,
+  offBrandLeaksPrevented: 312,
+  badges: [
+    { id: "mb1", title: "RAG Policy Architect", level: "Platinum", description: "Configured zero-knowledge vector embeddings for Brand Book v2.1" },
+    { id: "mb2", title: "Enterprise Compliance Lead", level: "Gold", description: "Reduced multi-region brand drift by 88% across 46 creators" }
+  ],
+  governanceChangelog: [
+    {
+      date: "2026-11-17",
+      action: "Certified Asset for Multi-Region Publication",
+      target: "Global Partner Ecosystem Announcement",
+      rating: 5,
+      tag: "Brand-Certified"
+    },
+    {
+      date: "2026-10-15",
+      action: "Promoted Brand Guidelines to v2.1",
+      target: "Acme Cloud Brand Book v2.1 (Ground Truth Source)",
+      rating: null,
+      tag: "Vault Policy"
+    }
+  ]
+};
+
 // Initial Demo Posts (Private Drafts + Multi-Review Ready)
 export const INITIAL_POSTS = [
   {

@@ -31,7 +31,8 @@ import {
 } from "lucide-react";
 import ReportCard from "./ReportCard";
 import CreatorProfileCard from "./CreatorProfileCard";
-import { INITIAL_ANALYTICS, INITIAL_CREATOR_PROFILE } from "../data/initialData";
+import ComplianceCertificateModal from "./ComplianceCertificateModal";
+import { INITIAL_ANALYTICS, INITIAL_CREATOR_PROFILE, INITIAL_MANAGER_PROFILE } from "../data/initialData";
 
 export default function ManagerView({ 
   brandKit, 
@@ -39,6 +40,7 @@ export default function ManagerView({
   analytics,
   posts = [],
   creatorProfile = INITIAL_CREATOR_PROFILE,
+  managerProfile = INITIAL_MANAGER_PROFILE,
   onApproveDraft,
   onRequestRevisions,
   onAddComment
@@ -85,6 +87,8 @@ export default function ManagerView({
   
   // Rating & Certification modal state
   const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [showCertModal, setShowCertModal] = useState(false);
+  const [certPost, setCertPost] = useState(null);
   const [targetDraftToRate, setTargetDraftToRate] = useState(null);
   const [selectedRating, setSelectedRating] = useState(5);
   const [selectedAssessment, setSelectedAssessment] = useState("Brand-Certified");
@@ -262,7 +266,7 @@ export default function ManagerView({
           <button
             type="button"
             onClick={() => setActiveTab("insights")}
-            className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === "insights"
                 ? "bg-white text-slate-900 shadow-xs font-bold"
                 : "text-slate-600 hover:text-slate-900"
@@ -270,6 +274,20 @@ export default function ManagerView({
           >
             <BarChart3 className="w-3.5 h-3.5 text-emerald-600" />
             <span>Infographics & Insights</span>
+          </button>
+
+          {/* TAB 5: Manager Authority Profile */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("manager_profile")}
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+              activeTab === "manager_profile"
+                ? "bg-white text-slate-900 shadow-xs font-bold"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <span>My Authority Profile</span>
           </button>
 
         </div>
@@ -1132,6 +1150,133 @@ export default function ManagerView({
       )}
 
       {/* =========================================================================
+          TAB 5: MANAGER AUTHORITY PROFILE & GOVERNANCE CREDENTIALS
+         ========================================================================= */}
+      {activeTab === "manager_profile" && (
+        <div className="space-y-6 animate-fadeIn">
+          <div className="p-6 bg-white rounded-xl border border-slate-200 shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white flex items-center justify-center font-bold text-xl border-2 border-emerald-500 shadow-xs select-none">
+                    <span className="bg-gradient-to-br from-white to-slate-300 bg-clip-text text-transparent">
+                      BM
+                    </span>
+                  </div>
+                  <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-xs">
+                    ✓
+                  </span>
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-extrabold text-slate-900">{managerProfile.name}</h2>
+                    <span className="px-2.5 py-0.5 text-[10px] font-bold font-mono rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      Level 3 Authority
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 font-medium">
+                    {managerProfile.role} • {managerProfile.department}
+                  </p>
+                  
+                  <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-500">
+                    <span>Authority: <strong className="text-slate-900">{managerProfile.authorityLevel}</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <div className="text-xs font-mono font-bold text-emerald-700">Brand Vault Authority</div>
+                <div className="text-[10px] text-slate-400">RAG Vector Grounding Owner</div>
+              </div>
+            </div>
+
+            {/* 4 Metric Badges */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="text-[11px] font-mono text-slate-500 uppercase font-bold flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Brand Books Active</span>
+                </div>
+                <div className="text-2xl font-extrabold text-slate-900 font-mono mt-1">
+                  {managerProfile.activeBrandKits} (v2.1)
+                </div>
+                <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">Acme Cloud Enterprise</div>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="text-[11px] font-mono text-slate-500 uppercase font-bold flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Rules Enforced</span>
+                </div>
+                <div className="text-2xl font-extrabold text-slate-900 font-mono mt-1">
+                  {managerProfile.rulesAuthored} Active
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Strict Gemini RAG Grounded</div>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="text-[11px] font-mono text-slate-500 uppercase font-bold flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>System Brand Health</span>
+                </div>
+                <div className="text-2xl font-extrabold text-emerald-700 font-mono mt-1">
+                  {managerProfile.systemHealthScore}/100
+                </div>
+                <div className="text-[10px] text-emerald-600 mt-0.5">↑ +13% past 30 days</div>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="text-[11px] font-mono text-slate-500 uppercase font-bold flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Leaks Prevented</span>
+                </div>
+                <div className="text-2xl font-extrabold text-slate-900 font-mono mt-1">
+                  {managerProfile.offBrandLeaksPrevented}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Pre-publication intercepts</div>
+              </div>
+            </div>
+
+            {/* Badges & Governance Changelog */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <h4 className="text-xs font-bold text-slate-900 uppercase font-mono">Governance Authority Badges</h4>
+                <div className="space-y-2">
+                  {managerProfile.badges.map((b) => (
+                    <div key={b.id} className="p-3 bg-white rounded-lg border border-slate-200 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900">{b.title}</span>
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 bg-white rounded border border-slate-200 font-bold text-emerald-700">
+                          {b.level}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">{b.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <h4 className="text-xs font-bold text-slate-900 uppercase font-mono">Policy Changelog & Audit Trail</h4>
+                <div className="space-y-2">
+                  {managerProfile.governanceChangelog.map((entry, idx) => (
+                    <div key={idx} className="p-3 bg-white rounded-lg border border-slate-200 space-y-1 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-900">{entry.action}</span>
+                        <span className="text-[10px] font-mono text-slate-400">{entry.date}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-600 font-mono">{entry.target}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
           MODAL 1: RATE & CERTIFY POST (MANAGER)
          ========================================================================= */}
       {showApprovalModal && targetDraftToRate && (
@@ -1353,6 +1498,20 @@ export default function ManagerView({
               </div>
             )}
 
+            {inspectingPost.status === "Approved" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCertPost(inspectingPost);
+                  setShowCertModal(true);
+                }}
+                className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Award className="w-4 h-4" />
+                <span>View Digital Brand Compliance Certificate</span>
+              </button>
+            )}
+
             <div className="flex justify-end pt-2 border-t border-slate-100">
               <button
                 type="button"
@@ -1366,6 +1525,13 @@ export default function ManagerView({
           </div>
         </div>
       )}
+
+      {/* DIGITAL COMPLIANCE CERTIFICATE MODAL */}
+      <ComplianceCertificateModal
+        isOpen={showCertModal}
+        onClose={() => setShowCertModal(false)}
+        post={certPost}
+      />
 
       {/* Upload Brand Book PDF Simulation Modal */}
       {showUploadModal && (

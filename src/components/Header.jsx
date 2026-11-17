@@ -6,7 +6,7 @@ import {
   ShieldCheck, 
   Key, 
   FileEdit, 
-  Database,
+  User,
   CheckCircle2
 } from "lucide-react";
 import BrandLogo from "./BrandLogo";
@@ -17,7 +17,13 @@ export const ROLES = [
   { id: "manager", label: "Brand Manager", persona: "Governance Vault", badge: "Policy Authority" }
 ];
 
-export default function Header({ currentRole, onRoleChange, onResetDemo, onOpenApiModal }) {
+export default function Header({ 
+  currentRole, 
+  onRoleChange, 
+  onResetDemo, 
+  onOpenApiModal, 
+  onOpenProfileModal 
+}) {
   const activeRoleObj = ROLES.find(r => r.id === currentRole) || ROLES[0];
 
   return (
@@ -37,7 +43,7 @@ export default function Header({ currentRole, onRoleChange, onResetDemo, onOpenA
               <button
                 key={role.id}
                 onClick={() => onRoleChange(role.id)}
-                className={`relative px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                className={`relative px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                   isActive
                     ? "bg-white text-slate-900 shadow-xs font-bold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
@@ -55,7 +61,7 @@ export default function Header({ currentRole, onRoleChange, onResetDemo, onOpenA
           })}
         </div>
 
-        {/* Right Persona Badge & Demo Utilities */}
+        {/* Right Persona Badge & Utilities */}
         <div className="flex items-center gap-2.5 shrink-0">
           <div className="hidden lg:flex flex-col text-right pr-2 border-r border-slate-200">
             <span className="text-xs font-bold text-slate-900 leading-tight">
@@ -66,11 +72,22 @@ export default function Header({ currentRole, onRoleChange, onResetDemo, onOpenA
             </span>
           </div>
 
+          {/* View My Profile Button */}
+          <button
+            type="button"
+            onClick={onOpenProfileModal}
+            title={`View ${activeRoleObj.label} Profile & Governance Credentials`}
+            className="px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <User className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="hidden sm:inline">My Profile</span>
+          </button>
+
           {/* Engine API Key Modal Button */}
           <button
             onClick={onOpenApiModal}
             title="Configure Gemini API Key"
-            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
+            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors cursor-pointer"
           >
             <Key className="w-4 h-4" />
           </button>
@@ -79,7 +96,7 @@ export default function Header({ currentRole, onRoleChange, onResetDemo, onOpenA
           <button
             onClick={onResetDemo}
             title="Reset to Initial Acme Cloud v2.1 State"
-            className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 rounded-lg shadow-2xs flex items-center gap-1.5 transition-all"
+            className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 rounded-lg shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
             <span className="hidden sm:inline">Reset Demo</span>

@@ -5,11 +5,14 @@ import LeaderView from "./components/LeaderView";
 import ManagerView from "./components/ManagerView";
 import GeminiLiveConsole from "./components/GeminiLiveConsole";
 import ApiKeyModal from "./components/ApiKeyModal";
+import UserProfileModal from "./components/UserProfileModal";
 import { 
   INITIAL_BRAND_KIT, 
   INITIAL_POSTS, 
   INITIAL_ANALYTICS,
-  INITIAL_CREATOR_PROFILE 
+  INITIAL_CREATOR_PROFILE,
+  INITIAL_LEADER_PROFILE,
+  INITIAL_MANAGER_PROFILE
 } from "./data/initialData";
 import { analyzeContentWithGemini } from "./services/geminiAudit";
 import { 
@@ -61,6 +64,28 @@ export default function App() {
     return INITIAL_CREATOR_PROFILE;
   });
 
+  // Leader Profile
+  const [leaderProfile, setLeaderProfile] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("brandpulse_leader_profile");
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) { /* ignore */ }
+      }
+    }
+    return INITIAL_LEADER_PROFILE;
+  });
+
+  // Manager Profile
+  const [managerProfile, setManagerProfile] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("brandpulse_manager_profile");
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) { /* ignore */ }
+      }
+    }
+    return INITIAL_MANAGER_PROFILE;
+  });
+
   const [activeDraftId, setActiveDraftId] = useState(INITIAL_POSTS[0].id);
   const [activeLeaderDraftId, setActiveLeaderDraftId] = useState(
     INITIAL_POSTS.find(p => p.visibility === "leader_review" || p.visibility === "both")?.id || INITIAL_POSTS[0].id
@@ -78,6 +103,7 @@ export default function App() {
 
   const [isAuditing, setIsAuditing] = useState(false);
   const [apiModalOpen, setApiModalOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
   const showToast = (message, type = "success") => {
@@ -105,6 +131,18 @@ export default function App() {
       localStorage.setItem("brandpulse_creator_profile", JSON.stringify(creatorProfile));
     }
   }, [creatorProfile]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("brandpulse_leader_profile", JSON.stringify(leaderProfile));
+    }
+  }, [leaderProfile]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("brandpulse_manager_profile", JSON.stringify(managerProfile));
+    }
+  }, [managerProfile]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -518,6 +556,8 @@ export default function App() {
       localStorage.removeItem("brandpulse_brandkit");
       localStorage.removeItem("brandpulse_posts");
       localStorage.removeItem("brandpulse_creator_profile");
+      localStorage.removeItem("brandpulse_leader_profile");
+      localStorage.removeItem("brandpulse_manager_profile");
       localStorage.removeItem("brandpulse_analytics");
     }
     const freshPosts = JSON.parse(JSON.stringify(INITIAL_POSTS));
@@ -529,6 +569,8 @@ export default function App() {
     setBrandKit(freshBrandKit);
     setPosts(freshPosts);
     setCreatorProfile(INITIAL_CREATOR_PROFILE);
+    setLeaderProfile(INITIAL_LEADER_PROFILE);
+    setManagerProfile(INITIAL_MANAGER_PROFILE);
     setAnalytics(INITIAL_ANALYTICS);
     setActiveDraftId(freshPosts[0].id);
 
@@ -541,7 +583,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-28">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       
       {/* Top Header Bar (Persistent & Clean) */}
       <Header
@@ -549,6 +591,7 @@ export default function App() {
         onRoleChange={setCurrentRole}
         onResetDemo={handleResetDemo}
         onOpenApiModal={() => setApiModalOpen(true)}
+        onOpenProfileModal={() => setProfileModalOpen(true)}
       />
 
       {/* Main Content Workspace */}
@@ -596,6 +639,7 @@ export default function App() {
           <LeaderView
             drafts={leaderReviews}
             selectedDraftId={activeLeaderDraftId}
+            leaderProfile={leaderProfile}
             onSelectDraft={setActiveLeaderDraftId}
             onApproveDraft={handleApproveDraft}
             onRequestRevisions={handleRequestRevisions}
@@ -611,6 +655,7 @@ export default function App() {
             analytics={analytics}
             posts={posts}
             creatorProfile={creatorProfile}
+            managerProfile={managerProfile}
             onApproveDraft={handleApproveDraft}
             onRequestRevisions={handleRequestRevisions}
             onAddComment={handleAddComment}
@@ -619,8 +664,11 @@ export default function App() {
 
       </main>
 
-      {/* Persistent Minimalist Footer */}
-      <footer className="border-t border-slate-200 bg-white py-4 mb-4">
+      {/* Bottom Gemini Live & Supabase Test Console (Shown at bottom when scrolled down) */}
+      <GeminiLiveConsole />
+
+      {/* Floating Minimalist Footer */}
+      <footer className="border-t border-slate-200 bg-white/95 backdrop-blur-xs py-4 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
           <div>
             <strong>BrandPulse AI</strong> • Powered by Google Gemini Multimodal Engine • Grounded in Acme Cloud Brand Book v2.1
@@ -631,13 +679,20 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Bottom Gemini Live & Supabase Test Console (Styled like Gemini) */}
-      <GeminiLiveConsole />
-
       {/* API Key Modal */}
       <ApiKeyModal
         isOpen={apiModalOpen}
         onClose={() => setApiModalOpen(false)}
+      />
+
+      {/* Persona User Profile Modal */}
+      <UserProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        currentRole={currentRole}
+        creatorProfile={creatorProfile}
+        leaderProfile={leaderProfile}
+        managerProfile={managerProfile}
       />
 
     </div>
