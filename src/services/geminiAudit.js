@@ -18,13 +18,10 @@ export async function analyzeContentWithGemini(draftData, brandKit) {
     try {
       const liveResult = await callLiveGeminiAPI(draftData, brandKit, primaryKey.trim());
       if (liveResult && liveResult.overallScore !== undefined) {
-        const modelLabel = liveResult.modelUsed === "gemini-2.0-flash" 
-          ? "Google Gemini 2.0 Flash (Primary Key)" 
-          : `Google ${liveResult.modelUsed || "Gemini 2.0"} (Primary Key)`;
         return {
           ...liveResult,
           mode: "live-gemini",
-          modelName: modelLabel
+          modelName: formatModelLabel(liveResult.modelUsed, "Primary Key")
         };
       }
     } catch (err) {
@@ -37,13 +34,10 @@ export async function analyzeContentWithGemini(draftData, brandKit) {
     try {
       const backupResult = await callLiveGeminiAPI(draftData, brandKit, backupKey.trim());
       if (backupResult && backupResult.overallScore !== undefined) {
-        const modelLabel = backupResult.modelUsed === "gemini-2.0-flash" 
-          ? "Google Gemini 2.0 Flash (Backup Failover Key)" 
-          : `Google ${backupResult.modelUsed || "Gemini 2.0"} (Backup Key)`;
         return {
           ...backupResult,
           mode: "live-gemini-backup",
-          modelName: modelLabel
+          modelName: formatModelLabel(backupResult.modelUsed, "Backup Failover Key")
         };
       }
     } catch (err) {
@@ -55,12 +49,33 @@ export async function analyzeContentWithGemini(draftData, brandKit) {
   return runLocalGroundedAudit(draftData, brandKit);
 }
 
+// Helper to format friendly model labels
+function formatModelLabel(modelId, keyLabel) {
+  if (!modelId) return `Google Gemini (${keyLabel})`;
+  const clean = modelId
+    .replace(/^gemini-/, "Google Gemini ")
+    .replace(/-flash/, " Flash")
+    .replace(/-pro/, " Pro")
+    .replace(/-latest/, " Latest");
+  return `${clean} (${keyLabel})`;
+}
+
 // ---------------------------------------------------------------------------
 // 1. Live Google Gemini API Integration
 // ---------------------------------------------------------------------------
 async function callLiveGeminiAPI(draftData, brandKit, apiKey) {
-  // Recent production Google Gemini models: 2.0 Flash -> 1.5 Flash -> 1.5 Pro
-  const models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
+  const preferredModel = (typeof window !== "undefined" && localStorage.getItem("brandpulse_preferred_model")) || "gemini-3.8-flash";
+  
+  // Model priority cascade: User preferred model -> 3.8 Flash -> 3.6 Flash -> 3.7 Flash -> 3.5 Flash -> Latest
+  const baseModels = [
+    preferredModel,
+    "gemini-3.8-flash",
+    "gemini-3.6-flash",
+    "gemini-3.7-flash",
+    "gemini-3.5-flash",
+    "gemini-flash-latest"
+  ];
+  const models = Array.from(new Set(baseModels.filter(Boolean)));
   let lastError = null;
 
   for (const model of models) {

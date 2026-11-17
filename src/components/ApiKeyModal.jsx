@@ -4,14 +4,17 @@ import { Key, Check, X, Sparkles, ShieldCheck, RefreshCw } from "lucide-react";
 export default function ApiKeyModal({ isOpen, onClose }) {
   const [apiKey, setApiKey] = useState("");
   const [backupKey, setBackupKey] = useState("");
+  const [preferredModel, setPreferredModel] = useState("gemini-3.8-flash");
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storedPrimary = localStorage.getItem("brandpulse_gemini_key") || "";
       const storedBackup = localStorage.getItem("brandpulse_gemini_backup_key") || "";
+      const storedModel = localStorage.getItem("brandpulse_preferred_model") || "gemini-3.8-flash";
       setApiKey(storedPrimary);
       setBackupKey(storedBackup);
+      setPreferredModel(storedModel);
     }
   }, [isOpen]);
 
@@ -31,6 +34,10 @@ export default function ApiKeyModal({ isOpen, onClose }) {
         localStorage.removeItem("brandpulse_gemini_backup_key");
       }
 
+      if (preferredModel) {
+        localStorage.setItem("brandpulse_preferred_model", preferredModel);
+      }
+
       setSaved(true);
       setTimeout(() => {
         setSaved(false);
@@ -42,9 +49,11 @@ export default function ApiKeyModal({ isOpen, onClose }) {
   const handleClear = () => {
     setApiKey("");
     setBackupKey("");
+    setPreferredModel("gemini-3.8-flash");
     if (typeof window !== "undefined") {
       localStorage.removeItem("brandpulse_gemini_key");
       localStorage.removeItem("brandpulse_gemini_backup_key");
+      localStorage.setItem("brandpulse_preferred_model", "gemini-3.8-flash");
     }
   };
 
@@ -96,6 +105,28 @@ export default function ApiKeyModal({ isOpen, onClose }) {
             placeholder="Enter backup failover API key..."
             className="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
           />
+        </div>
+
+        {/* Target Gemini Model Selection */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+            <span>Target Gemini AI Model</span>
+            <span className="text-[10px] font-mono text-emerald-700">Audit Engine</span>
+          </label>
+          <select
+            value={preferredModel}
+            onChange={(e) => setPreferredModel(e.target.value)}
+            className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white cursor-pointer"
+          >
+            <option value="gemini-3.8-flash">Google Gemini 3.8 Flash (Cutting-Edge Multimodal)</option>
+            <option value="gemini-3.6-flash">Google Gemini 3.6 Flash (High-Speed Audit Engine)</option>
+            <option value="gemini-3.7-flash">Google Gemini 3.7 Flash (Balanced Reasoning)</option>
+            <option value="gemini-3.5-flash">Google Gemini 3.5 Flash (Enterprise Production)</option>
+            <option value="gemini-flash-latest">Google Gemini Flash Latest (Auto-Track Flagship)</option>
+          </select>
+          <p className="text-[10px] text-slate-400">
+            Selected model will be called first for multimodal tone, terminology, and fact verification.
+          </p>
         </div>
 
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2.5 text-xs text-emerald-950">
