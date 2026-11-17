@@ -18,10 +18,13 @@ export async function analyzeContentWithGemini(draftData, brandKit) {
     try {
       const liveResult = await callLiveGeminiAPI(draftData, brandKit, primaryKey.trim());
       if (liveResult && liveResult.overallScore !== undefined) {
+        const modelLabel = liveResult.modelUsed === "gemini-2.0-flash" 
+          ? "Google Gemini 2.0 Flash (Primary Key)" 
+          : `Google ${liveResult.modelUsed || "Gemini 2.0"} (Primary Key)`;
         return {
           ...liveResult,
           mode: "live-gemini",
-          modelName: "Google Gemini 2.0 Flash (Primary Key)"
+          modelName: modelLabel
         };
       }
     } catch (err) {
@@ -34,10 +37,13 @@ export async function analyzeContentWithGemini(draftData, brandKit) {
     try {
       const backupResult = await callLiveGeminiAPI(draftData, brandKit, backupKey.trim());
       if (backupResult && backupResult.overallScore !== undefined) {
+        const modelLabel = backupResult.modelUsed === "gemini-2.0-flash" 
+          ? "Google Gemini 2.0 Flash (Backup Failover Key)" 
+          : `Google ${backupResult.modelUsed || "Gemini 2.0"} (Backup Key)`;
         return {
           ...backupResult,
           mode: "live-gemini-backup",
-          modelName: "Google Gemini 2.0 Flash (Backup Failover Key)"
+          modelName: modelLabel
         };
       }
     } catch (err) {
@@ -53,8 +59,8 @@ export async function analyzeContentWithGemini(draftData, brandKit) {
 // 1. Live Google Gemini API Integration
 // ---------------------------------------------------------------------------
 async function callLiveGeminiAPI(draftData, brandKit, apiKey) {
-  // Try Gemini 2.0 Flash endpoint; fallback to 1.5 Flash if needed
-  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+  // Recent production Google Gemini models: 2.0 Flash -> 1.5 Flash -> 1.5 Pro
+  const models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
   let lastError = null;
 
   for (const model of models) {
@@ -133,6 +139,7 @@ Respond ONLY with raw valid JSON. Do not wrap in markdown code fences.`;
       const cleanJson = text.replace(/```json/g, "").replace(/```/g, "").trim();
       const parsed = JSON.parse(cleanJson);
       parsed.timestamp = new Date().toISOString();
+      parsed.modelUsed = model;
       return parsed;
     } catch (err) {
       lastError = err;

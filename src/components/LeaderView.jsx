@@ -34,6 +34,18 @@ export default function LeaderView({
   onRequestRevisions, 
   onAddComment 
 }) {
+  // Safe fallback leader profile for zero-crash resiliency
+  const safeLeaderProfile = {
+    ...INITIAL_LEADER_PROFILE,
+    ...(leaderProfile || {}),
+    badges: (leaderProfile?.badges && leaderProfile.badges.length > 0)
+      ? leaderProfile.badges
+      : INITIAL_LEADER_PROFILE.badges,
+    recentReviewsAwarded: (leaderProfile?.recentReviewsAwarded && leaderProfile.recentReviewsAwarded.length > 0)
+      ? leaderProfile.recentReviewsAwarded
+      : INITIAL_LEADER_PROFILE.recentReviewsAwarded
+  };
+
   const [activeSubTab, setActiveSubTab] = useState("review_desk"); // "review_desk" | "leader_profile"
   const [commentText, setCommentText] = useState("");
   const [showApprovalModal, setShowApprovalModal] = useState(false);
@@ -138,19 +150,19 @@ export default function LeaderView({
 
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-extrabold text-slate-900">{leaderProfile.name}</h2>
+                    <h2 className="text-lg font-extrabold text-slate-900">{safeLeaderProfile.name}</h2>
                     <span className="px-2.5 py-0.5 text-[10px] font-bold font-mono rounded-full bg-blue-100 text-blue-800 border border-blue-200">
                       Level 2 Sign-Off
                     </span>
                   </div>
                   <p className="text-xs text-slate-600 font-medium">
-                    {leaderProfile.role} • {leaderProfile.department}
+                    {safeLeaderProfile.role} • {safeLeaderProfile.department}
                   </p>
                   
                   <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-500">
-                    <span>Approval Ratio: <strong className="text-slate-900 font-mono">{leaderProfile.approvalRate}%</strong></span>
+                    <span>Approval Ratio: <strong className="text-slate-900 font-mono">{safeLeaderProfile.approvalRate}%</strong></span>
                     <span>•</span>
-                    <span>Average Quality Rating: <strong className="text-amber-600 font-mono">{leaderProfile.qualityRatingGiven} ★</strong></span>
+                    <span>Average Quality Rating: <strong className="text-amber-600 font-mono">{safeLeaderProfile.qualityRatingGiven} ★</strong></span>
                   </div>
                 </div>
               </div>
@@ -169,7 +181,7 @@ export default function LeaderView({
                   <span>Reviews Completed</span>
                 </div>
                 <div className="text-2xl font-extrabold text-slate-900 font-mono mt-1">
-                  {leaderProfile.reviewsCompleted}
+                  {safeLeaderProfile.reviewsCompleted}
                 </div>
                 <div className="text-[10px] text-slate-400 mt-0.5">Across social & doc channels</div>
               </div>
@@ -180,7 +192,7 @@ export default function LeaderView({
                   <span>Turnaround Speed</span>
                 </div>
                 <div className="text-2xl font-extrabold text-emerald-600 font-mono mt-1">
-                  {leaderProfile.averageTurnaround}
+                  {safeLeaderProfile.averageTurnaround}
                 </div>
                 <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">Top 10% in organization</div>
               </div>
@@ -213,7 +225,7 @@ export default function LeaderView({
               <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                 <h4 className="text-xs font-bold text-slate-900 uppercase font-mono">Governance Badges</h4>
                 <div className="space-y-2">
-                  {leaderProfile.badges.map((b) => (
+                  {safeLeaderProfile.badges.map((b) => (
                     <div key={b.id} className="p-3 bg-white rounded-lg border border-slate-200 space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-900">{b.title}</span>
@@ -230,7 +242,7 @@ export default function LeaderView({
               <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                 <h4 className="text-xs font-bold text-slate-900 uppercase font-mono">Recent Reviews Awarded</h4>
                 <div className="space-y-2">
-                  {leaderProfile.recentReviewsAwarded.map((rev) => (
+                  {safeLeaderProfile.recentReviewsAwarded.map((rev) => (
                     <div key={rev.id} className="p-3 bg-white rounded-lg border border-slate-200 space-y-1 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-slate-900 truncate max-w-[200px]">{rev.postTitle}</span>

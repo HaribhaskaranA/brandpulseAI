@@ -27,7 +27,8 @@ import {
   Inbox,
   User,
   Users,
-  Paperclip
+  Paperclip,
+  Database
 } from "lucide-react";
 import ReportCard from "./ReportCard";
 import CreatorProfileCard from "./CreatorProfileCard";
@@ -64,6 +65,18 @@ export default function ManagerView({
     creatorLeaderboard: (analytics?.creatorLeaderboard && analytics.creatorLeaderboard.length > 0) 
       ? analytics.creatorLeaderboard 
       : INITIAL_ANALYTICS.creatorLeaderboard
+  };
+
+  // Safe fallback manager profile for zero-crash resiliency
+  const safeManagerProfile = {
+    ...INITIAL_MANAGER_PROFILE,
+    ...(managerProfile || {}),
+    badges: (managerProfile?.badges && managerProfile.badges.length > 0)
+      ? managerProfile.badges
+      : INITIAL_MANAGER_PROFILE.badges,
+    governanceChangelog: (managerProfile?.governanceChangelog && managerProfile.governanceChangelog.length > 0)
+      ? managerProfile.governanceChangelog
+      : INITIAL_MANAGER_PROFILE.governanceChangelog
   };
 
   const [activeTab, setActiveTab] = useState("pending_reviews"); // "pending_reviews" | "rules_book" | "creators" | "insights"
@@ -1170,17 +1183,17 @@ export default function ManagerView({
 
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-extrabold text-slate-900">{managerProfile.name}</h2>
+                    <h2 className="text-lg font-extrabold text-slate-900">{safeManagerProfile.name}</h2>
                     <span className="px-2.5 py-0.5 text-[10px] font-bold font-mono rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
                       Level 3 Authority
                     </span>
                   </div>
                   <p className="text-xs text-slate-600 font-medium">
-                    {managerProfile.role} • {managerProfile.department}
+                    {safeManagerProfile.role} • {safeManagerProfile.department}
                   </p>
                   
                   <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-500">
-                    <span>Authority: <strong className="text-slate-900">{managerProfile.authorityLevel}</strong></span>
+                    <span>Authority: <strong className="text-slate-900">{safeManagerProfile.authorityLevel}</strong></span>
                   </div>
                 </div>
               </div>
@@ -1199,7 +1212,7 @@ export default function ManagerView({
                   <span>Brand Books Active</span>
                 </div>
                 <div className="text-2xl font-extrabold text-slate-900 font-mono mt-1">
-                  {managerProfile.activeBrandKits} (v2.1)
+                  {safeManagerProfile.activeBrandKits} (v2.1)
                 </div>
                 <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">Acme Cloud Enterprise</div>
               </div>
@@ -1210,7 +1223,7 @@ export default function ManagerView({
                   <span>Rules Enforced</span>
                 </div>
                 <div className="text-2xl font-extrabold text-slate-900 font-mono mt-1">
-                  {managerProfile.rulesAuthored} Active
+                  {safeManagerProfile.rulesAuthored} Active
                 </div>
                 <div className="text-[10px] text-slate-400 mt-0.5">Strict Gemini RAG Grounded</div>
               </div>
@@ -1221,7 +1234,7 @@ export default function ManagerView({
                   <span>System Brand Health</span>
                 </div>
                 <div className="text-2xl font-extrabold text-emerald-700 font-mono mt-1">
-                  {managerProfile.systemHealthScore}/100
+                  {safeManagerProfile.systemHealthScore}/100
                 </div>
                 <div className="text-[10px] text-emerald-600 mt-0.5">↑ +13% past 30 days</div>
               </div>
@@ -1232,7 +1245,7 @@ export default function ManagerView({
                   <span>Leaks Prevented</span>
                 </div>
                 <div className="text-2xl font-extrabold text-slate-900 font-mono mt-1">
-                  {managerProfile.offBrandLeaksPrevented}
+                  {safeManagerProfile.offBrandLeaksPrevented}
                 </div>
                 <div className="text-[10px] text-slate-400 mt-0.5">Pre-publication intercepts</div>
               </div>
@@ -1243,7 +1256,7 @@ export default function ManagerView({
               <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                 <h4 className="text-xs font-bold text-slate-900 uppercase font-mono">Governance Authority Badges</h4>
                 <div className="space-y-2">
-                  {managerProfile.badges.map((b) => (
+                  {safeManagerProfile.badges.map((b) => (
                     <div key={b.id} className="p-3 bg-white rounded-lg border border-slate-200 space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-900">{b.title}</span>
@@ -1260,7 +1273,7 @@ export default function ManagerView({
               <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                 <h4 className="text-xs font-bold text-slate-900 uppercase font-mono">Policy Changelog & Audit Trail</h4>
                 <div className="space-y-2">
-                  {managerProfile.governanceChangelog.map((entry, idx) => (
+                  {safeManagerProfile.governanceChangelog.map((entry, idx) => (
                     <div key={idx} className="p-3 bg-white rounded-lg border border-slate-200 space-y-1 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-slate-900">{entry.action}</span>

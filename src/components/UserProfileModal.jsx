@@ -15,6 +15,7 @@ import {
   X
 } from "lucide-react";
 import CreatorProfileCard from "./CreatorProfileCard";
+import { INITIAL_CREATOR_PROFILE, INITIAL_LEADER_PROFILE, INITIAL_MANAGER_PROFILE } from "../data/initialData";
 
 export default function UserProfileModal({ 
   isOpen, 
@@ -25,6 +26,30 @@ export default function UserProfileModal({
   managerProfile 
 }) {
   if (!isOpen) return null;
+
+  const safeCreator = creatorProfile || INITIAL_CREATOR_PROFILE;
+  
+  const safeLeader = {
+    ...INITIAL_LEADER_PROFILE,
+    ...(leaderProfile || {}),
+    badges: (leaderProfile?.badges && leaderProfile.badges.length > 0) 
+      ? leaderProfile.badges 
+      : INITIAL_LEADER_PROFILE.badges,
+    recentReviews: (leaderProfile?.recentReviews && leaderProfile.recentReviews.length > 0) 
+      ? leaderProfile.recentReviews 
+      : INITIAL_LEADER_PROFILE.recentReviews
+  };
+
+  const safeManager = {
+    ...INITIAL_MANAGER_PROFILE,
+    ...(managerProfile || {}),
+    badges: (managerProfile?.badges && managerProfile.badges.length > 0) 
+      ? managerProfile.badges 
+      : INITIAL_MANAGER_PROFILE.badges,
+    governanceChangelog: (managerProfile?.governanceChangelog && managerProfile.governanceChangelog.length > 0) 
+      ? managerProfile.governanceChangelog 
+      : INITIAL_MANAGER_PROFILE.governanceChangelog
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fadeIn">
@@ -229,17 +254,17 @@ export default function UserProfileModal({
 
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-extrabold text-slate-900">{managerProfile.name}</h2>
+                      <h2 className="text-lg font-extrabold text-slate-900">{safeManager.name}</h2>
                       <span className="px-2.5 py-0.5 text-[10px] font-bold font-mono rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
                         Level 3 Authority
                       </span>
                     </div>
                     <p className="text-xs text-slate-600 font-medium">
-                      {managerProfile.role} • {managerProfile.department}
+                      {safeManager.role} • {safeManager.department}
                     </p>
                     
                     <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-500">
-                      <span>Authority: <strong className="text-slate-900">{managerProfile.authorityLevel}</strong></span>
+                      <span>Authority: <strong className="text-slate-900">{safeManager.authorityLevel}</strong></span>
                     </div>
                   </div>
                 </div>
@@ -258,7 +283,7 @@ export default function UserProfileModal({
                     <span>Brand Books Active</span>
                   </div>
                   <div className="text-2xl font-extrabold text-slate-900 font-mono mt-1">
-                    {managerProfile.activeBrandKits} (v2.1)
+                    {safeManager.activeBrandKits} (v2.1)
                   </div>
                   <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">Acme Cloud Enterprise</div>
                 </div>
@@ -269,7 +294,7 @@ export default function UserProfileModal({
                     <span>Rules Enforced</span>
                   </div>
                   <div className="text-2xl font-extrabold text-slate-900 font-mono mt-1">
-                    {managerProfile.rulesAuthored} Active
+                    {safeManager.rulesAuthored} Active
                   </div>
                   <div className="text-[10px] text-slate-400 mt-0.5">Strict Gemini RAG Grounded</div>
                 </div>
@@ -280,7 +305,7 @@ export default function UserProfileModal({
                     <span>System Brand Health</span>
                   </div>
                   <div className="text-2xl font-extrabold text-emerald-700 font-mono mt-1">
-                    {managerProfile.systemHealthScore}/100
+                    {safeManager.systemHealthScore}/100
                   </div>
                   <div className="text-[10px] text-emerald-600 mt-0.5">↑ +13% past 30 days</div>
                 </div>
@@ -291,7 +316,7 @@ export default function UserProfileModal({
                     <span>Leaks Prevented</span>
                   </div>
                   <div className="text-2xl font-extrabold text-slate-900 font-mono mt-1">
-                    {managerProfile.offBrandLeaksPrevented}
+                    {safeManager.offBrandLeaksPrevented}
                   </div>
                   <div className="text-[10px] text-slate-400 mt-0.5">Pre-publication intercepts</div>
                 </div>
@@ -311,7 +336,7 @@ export default function UserProfileModal({
                 </div>
 
                 <div className="space-y-3">
-                  {managerProfile.badges.map((b) => (
+                  {safeManager.badges.map((b) => (
                     <div key={b.id} className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-900">{b.title}</span>
@@ -335,7 +360,7 @@ export default function UserProfileModal({
                 </div>
 
                 <div className="space-y-3">
-                  {managerProfile.governanceChangelog.map((entry, idx) => (
+                  {safeManager.governanceChangelog.map((entry, idx) => (
                     <div key={idx} className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-slate-900">{entry.action}</span>
