@@ -1,9 +1,5 @@
 # BrandPulse AI — Pre-Publication Brand Governance Platform
-**Powered by Google Gemini Multimodal AI**  
-**Hackathon Entry:** Inkloom AI Brand-Governance Challenge (Round 1: The Plan)  
-**Team Name:** Green Coders  
-**Team Members:** Haribhaskaran A (Team Lead), Antonio Danish B, Deepadharshan R, Harish N, Barath Kumar K, Jaswanth Kannan K  
-**Institution:** Sri Krishna College of Engineering and Technology, Coimbatore, Tamil Nadu  
+**Powered by Google Gemini Multimodal AI**   
 
 ---
 
@@ -47,7 +43,6 @@ Instead of acting as a rigid blocker or failing silently, BrandPulse AI function
 
 ```bash
 # 1. Navigate to project directory
-cd "C:\Users\HARIBHASKARAN A\.gemini\antigravity\scratch\brandpulse-ai"
 
 # 2. Install dependencies (already completed)
 npm install
