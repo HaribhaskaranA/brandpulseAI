@@ -1,29 +1,51 @@
 // Service for Google Gemini Brand Evaluation & Grounded Rule Verification
-// Supports Live Gemini API (gemini-2.0-flash / gemini-1.5-flash) with robust intelligent local rule-matching fallback
+// Features automatic Dual-API Key Failover (Primary -> Backup) and local intelligent rule-matching fallback
 
 export async function analyzeContentWithGemini(draftData, brandKit) {
-  const apiKey = 
+  // Retrieve primary and backup keys from environment or localStorage overrides
+  const primaryKey = 
     (typeof window !== "undefined" && localStorage.getItem("brandpulse_gemini_key")) ||
     import.meta.env.VITE_GEMINI_API_KEY ||
     "";
 
-  // If API key is available, attempt Live Gemini call
-  if (apiKey && apiKey.trim().length > 10) {
+  const backupKey = 
+    (typeof window !== "undefined" && localStorage.getItem("brandpulse_gemini_backup_key")) ||
+    import.meta.env.VITE_GEMINI_API_KEY_BACKUP ||
+    "";
+
+  // 1. Try Primary Key first if available
+  if (primaryKey && primaryKey.trim().length > 10) {
     try {
-      const liveResult = await callLiveGeminiAPI(draftData, brandKit, apiKey.trim());
+      const liveResult = await callLiveGeminiAPI(draftData, brandKit, primaryKey.trim());
       if (liveResult && liveResult.overallScore !== undefined) {
         return {
           ...liveResult,
           mode: "live-gemini",
-          modelName: "Google Gemini 2.0 Flash"
+          modelName: "Google Gemini 2.0 Flash (Primary Key)"
         };
       }
     } catch (err) {
-      console.warn("Live Gemini API call failed or timed out. Falling back to local grounded rule engine.", err);
+      console.warn("Primary Gemini API key call failed or rate-limited. Trying backup key...", err.message);
     }
   }
 
-  // Fast, intelligent deterministic rule engine grounded in Manager's active rules
+  // 2. Automatic Failover: Try Backup Key if primary failed or was unavailable
+  if (backupKey && backupKey.trim().length > 10) {
+    try {
+      const backupResult = await callLiveGeminiAPI(draftData, brandKit, backupKey.trim());
+      if (backupResult && backupResult.overallScore !== undefined) {
+        return {
+          ...backupResult,
+          mode: "live-gemini-backup",
+          modelName: "Google Gemini 2.0 Flash (Backup Failover Key)"
+        };
+      }
+    } catch (err) {
+      console.warn("Backup Gemini API key call also failed or rate-limited. Falling back to local grounded rule engine.", err.message);
+    }
+  }
+
+  // 3. Fallback: Fast, intelligent deterministic rule engine grounded in Manager's active rules
   return runLocalGroundedAudit(draftData, brandKit);
 }
 
@@ -31,14 +53,19 @@ export async function analyzeContentWithGemini(draftData, brandKit) {
 // 1. Live Google Gemini API Integration
 // ---------------------------------------------------------------------------
 async function callLiveGeminiAPI(draftData, brandKit, apiKey) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  // Try Gemini 2.0 Flash endpoint; fallback to 1.5 Flash if needed
+  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+  let lastError = null;
 
-  const rulesContext = brandKit.rules
-    .filter(r => r.active)
-    .map(r => `[${r.category}] ${r.title} | Citation: "${r.citation}" | Rule: "${r.guidelineText}" | Banned: ${r.bannedTerms ? r.bannedTerms.join(", ") : "None"} | Verified Fact: ${r.verifiedFact || "N/A"}`)
-    .join("\n");
+  for (const model of models) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-  const prompt = `You are BrandPulse AI, an enterprise pre-publication brand governance auditor.
+    const rulesContext = brandKit.rules
+      .filter(r => r.active)
+      .map(r => `[${r.category}] ${r.title} | Citation: "${r.citation}" | Rule: "${r.guidelineText}" | Banned: ${r.bannedTerms ? r.bannedTerms.join(", ") : "None"} | Verified Fact: ${r.verifiedFact || "N/A"}`)
+      .join("\n");
+
+    const prompt = `You are BrandPulse AI, an enterprise pre-publication brand governance auditor.
 Evaluate the following creative draft against the company's approved Brand Guidelines.
 
 === APPROVED BRAND GUIDELINES (GROUND TRUTH) ===
@@ -81,31 +108,39 @@ Image Attached: ${draftData.hasImage ? `Yes (${draftData.bannerName || "banner.j
 }
 Respond ONLY with raw valid JSON. Do not wrap in markdown code fences.`;
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.1,
-        topP: 0.95,
-        responseMimeType: "application/json"
-      }
-    })
-  });
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.1,
+            topP: 0.95,
+            responseMimeType: "application/json"
+          }
+        })
+      });
 
-  if (!response.ok) {
-    throw new Error(`Gemini API error status: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`Gemini API error ${response.status} on model ${model}`);
+      }
+
+      const data = await response.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error("Empty response from Gemini API");
+
+      const cleanJson = text.replace(/```json/g, "").replace(/```/g, "").trim();
+      const parsed = JSON.parse(cleanJson);
+      parsed.timestamp = new Date().toISOString();
+      return parsed;
+    } catch (err) {
+      lastError = err;
+      continue;
+    }
   }
 
-  const data = await response.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Empty response from Gemini API");
-
-  const cleanJson = text.replace(/```json/g, "").replace(/```/g, "").trim();
-  const parsed = JSON.parse(cleanJson);
-  parsed.timestamp = new Date().toISOString();
-  return parsed;
+  throw lastError || new Error("Failed to call Gemini API across models");
 }
 
 // ---------------------------------------------------------------------------

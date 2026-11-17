@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Key, Check, X, Sparkles, ShieldCheck } from "lucide-react";
+import { Key, Check, X, Sparkles, ShieldCheck, RefreshCw } from "lucide-react";
 
 export default function ApiKeyModal({ isOpen, onClose }) {
   const [apiKey, setApiKey] = useState("");
+  const [backupKey, setBackupKey] = useState("");
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("brandpulse_gemini_key") || "";
-      setApiKey(stored);
+      const storedPrimary = localStorage.getItem("brandpulse_gemini_key") || "";
+      const storedBackup = localStorage.getItem("brandpulse_gemini_backup_key") || "";
+      setApiKey(storedPrimary);
+      setBackupKey(storedBackup);
     }
   }, [isOpen]);
 
@@ -21,6 +24,13 @@ export default function ApiKeyModal({ isOpen, onClose }) {
       } else {
         localStorage.removeItem("brandpulse_gemini_key");
       }
+
+      if (backupKey.trim()) {
+        localStorage.setItem("brandpulse_gemini_backup_key", backupKey.trim());
+      } else {
+        localStorage.removeItem("brandpulse_gemini_backup_key");
+      }
+
       setSaved(true);
       setTimeout(() => {
         setSaved(false);
@@ -31,18 +41,20 @@ export default function ApiKeyModal({ isOpen, onClose }) {
 
   const handleClear = () => {
     setApiKey("");
+    setBackupKey("");
     if (typeof window !== "undefined") {
       localStorage.removeItem("brandpulse_gemini_key");
+      localStorage.removeItem("brandpulse_gemini_backup_key");
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-      <div className="w-full max-w-md bg-white rounded-xl border border-slate-200 shadow-2xl p-6 space-y-4">
+      <div className="w-full max-w-lg bg-white rounded-xl border border-slate-200 shadow-2xl p-6 space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2 text-slate-900 font-bold text-base">
             <Key className="w-4 h-4 text-emerald-600" />
-            <span>Google Gemini API Configuration</span>
+            <span>Google Gemini Dual-Key Configuration</span>
           </div>
           <button 
             onClick={onClose}
@@ -53,28 +65,43 @@ export default function ApiKeyModal({ isOpen, onClose }) {
         </div>
 
         <p className="text-xs text-slate-600 leading-relaxed">
-          BrandPulse AI works <strong>100% offline out-of-the-box</strong> using our built-in intelligent rule-matching engine. 
-          Optionally paste your Google Gemini API key below to enable live cloud inference via <span className="font-mono text-emerald-700 font-semibold">gemini-2.0-flash</span>.
+          BrandPulse AI features <strong>automatic dual-key failover</strong>. If the primary key is rate-limited or unavailable, the system automatically routes requests through your backup key, with seamless offline local rule engine fallback.
         </p>
 
+        {/* Primary API Key */}
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-700">Gemini API Key</label>
+          <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+            <span>Primary Gemini API Key</span>
+            <span className="text-[10px] font-mono text-emerald-700">Default Route</span>
+          </label>
           <input
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder="AIzaSy..."
+            placeholder="Enter primary Gemini API key..."
             className="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
           />
-          <div className="text-[11px] text-slate-400">
-            Stored locally in your browser's localStorage. Never sent to any third-party server.
-          </div>
+        </div>
+
+        {/* Backup API Key */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+            <span>Backup / Failover Gemini API Key</span>
+            <span className="text-[10px] font-mono text-amber-700">Auto Failover</span>
+          </label>
+          <input
+            type="password"
+            value={backupKey}
+            onChange={(e) => setBackupKey(e.target.value)}
+            placeholder="Enter backup failover API key..."
+            className="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+          />
         </div>
 
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2.5 text-xs text-emerald-950">
           <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
           <div className="text-[11px] leading-relaxed">
-            <strong>Judge-Ready Fallback:</strong> If left blank, the app uses deterministic semantic rule verification grounded in the Manager's uploaded Brand Book.
+            <strong>Security & Privacy:</strong> Keys are kept in local `.env` and browser memory, excluded from Git via `.gitignore`. If both keys are exhausted, the app seamlessly falls back to local grounded rules.
           </div>
         </div>
 
@@ -84,7 +111,7 @@ export default function ApiKeyModal({ isOpen, onClose }) {
             onClick={handleClear}
             className="text-xs text-slate-500 hover:text-red-600 font-medium"
           >
-            Clear Key (Use Local Engine)
+            Clear Overrides
           </button>
           
           <div className="flex items-center gap-2">
@@ -108,7 +135,7 @@ export default function ApiKeyModal({ isOpen, onClose }) {
               ) : (
                 <>
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Save Configuration</span>
+                  <span>Save Keys</span>
                 </>
               )}
             </button>
