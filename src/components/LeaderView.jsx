@@ -12,7 +12,9 @@ import {
   ShieldCheck,
   UserCheck,
   Sparkles,
-  Inbox
+  Inbox,
+  Star,
+  Award
 } from "lucide-react";
 import ReportCard from "./ReportCard";
 
@@ -25,6 +27,10 @@ export default function LeaderView({
   onAddComment 
 }) {
   const [commentText, setCommentText] = useState("");
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [selectedRating, setSelectedRating] = useState(5);
+  const [selectedAssessment, setSelectedAssessment] = useState("Exceeds Standard");
+  const [approvalComment, setApprovalComment] = useState("");
 
   const activeDraft = drafts.find(d => d.id === selectedDraftId) || drafts[0];
 
@@ -37,6 +43,15 @@ export default function LeaderView({
       text: commentText.trim()
     });
     setCommentText("");
+  };
+
+  const handleConfirmApproval = () => {
+    onApproveDraft(activeDraft.id, {
+      rating: selectedRating,
+      assessment: selectedAssessment,
+      comment: approvalComment.trim() || "Exemplary brand book adherence."
+    });
+    setShowApprovalModal(false);
   };
 
   const getStatusBadge = (status) => {
@@ -79,7 +94,7 @@ export default function LeaderView({
                 <UserCheck className="w-4 h-4 text-emerald-600" />
                 <span>Editorial Review Desk ({drafts.length})</span>
               </h2>
-              <p className="text-[11px] text-slate-500">Submitted posts awaiting editorial approval</p>
+              <p className="text-[11px] text-slate-500">Submitted posts awaiting editorial approval & rating</p>
             </div>
             <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
               Live Synced
@@ -120,7 +135,12 @@ export default function LeaderView({
                   </h3>
 
                   <div className="flex items-center justify-between text-[11px] text-slate-500">
-                    <span>{d.author?.split(" ")[0]}</span>
+                    <span className="flex items-center gap-1">
+                      <span>{d.author}</span>
+                      {d.visibility === "both" && (
+                        <span className="text-[9px] bg-purple-100 text-purple-700 px-1 rounded font-bold">Both</span>
+                      )}
+                    </span>
                     <span className={`font-mono font-bold ${
                       score >= 80 ? "text-emerald-700" : score >= 60 ? "text-amber-700" : "text-red-700"
                     }`}>
@@ -140,7 +160,7 @@ export default function LeaderView({
             <span>Human-in-the-Loop Safeguard</span>
           </div>
           <p className="text-[11px] text-slate-600 leading-relaxed">
-            Google Gemini acts strictly as an advisory copilot. Publishing sign-off or return with revisions requires explicit human leadership consent.
+            Google Gemini acts strictly as an advisory copilot. Publishing sign-off or return with revisions requires explicit human leadership consent and rating feedback.
           </p>
         </div>
       </div>
@@ -157,6 +177,11 @@ export default function LeaderView({
                   {activeDraft.channel}
                 </span>
                 {getStatusBadge(activeDraft.status)}
+                {activeDraft.visibility === "both" && (
+                  <span className="text-[10px] font-mono font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
+                    Dual Review (Leader + Manager)
+                  </span>
+                )}
               </div>
               <h1 className="text-lg font-extrabold text-slate-900">{activeDraft.title}</h1>
               <p className="text-xs text-slate-500 mt-0.5">
@@ -177,30 +202,42 @@ export default function LeaderView({
 
               <button
                 type="button"
-                onClick={() => onApproveDraft(activeDraft.id)}
+                onClick={() => setShowApprovalModal(true)}
                 className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Approve for Publication</span>
+                <span>Rate & Approve</span>
               </button>
             </div>
           </div>
 
-          {/* Approved Publication Badge if Approved */}
+          {/* Approved Publication Badge & Reviewer Rating if Approved */}
           {activeDraft.status === "Approved" && (
-            <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-lg flex items-center justify-between text-xs text-emerald-900">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                <div>
-                  <strong className="block text-emerald-950">Brand-Certified for Publication</strong>
-                  <span className="text-[11px] text-emerald-800">
-                    Formally approved by Editorial Leader. Timestamped immutable audit trail locked in Supabase.
+            <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-xl space-y-2 text-xs text-emerald-950">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <strong className="text-emerald-950 text-sm">Brand-Certified for Publication</strong>
+                </div>
+                <div className="flex items-center gap-1 text-amber-500">
+                  {[...Array(activeDraft.reviewRating || 5)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                  <span className="font-mono font-bold text-xs ml-1 text-slate-900">
+                    ({activeDraft.reviewRating || 5}/5 - {activeDraft.reviewAssessment || "Exceeds Standard"})
                   </span>
                 </div>
               </div>
-              <span className="font-mono text-[10px] text-emerald-700 bg-white px-2 py-1 rounded border border-emerald-200 font-bold">
-                LOCKED: PASS
-              </span>
+
+              {activeDraft.reviewComment && (
+                <p className="text-[11px] text-emerald-900 italic pl-3 border-l-2 border-emerald-500">
+                  "{activeDraft.reviewComment}"
+                </p>
+              )}
+              
+              <div className="text-[10px] text-emerald-700 font-mono">
+                Formally approved by Editorial Leader. Timestamped immutable audit trail locked in Supabase table.
+              </div>
             </div>
           )}
 
@@ -305,6 +342,105 @@ export default function LeaderView({
         </div>
 
       </div>
+
+      {/* Approval & Star Rating Modal */}
+      {showApprovalModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md bg-white rounded-xl border border-slate-200 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <Award className="w-4 h-4 text-emerald-600" />
+                <span>Rate & Approve Draft for Publication</span>
+              </h3>
+              <button 
+                onClick={() => setShowApprovalModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600">
+              Award a quality performance star rating and assessment tag to <strong>{activeDraft.author}</strong>. This feeds directly into the creator's profile reputation score.
+            </p>
+
+            {/* Star Rating Picker */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Quality Star Rating (1–5):</label>
+              <div className="flex items-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setSelectedRating(star)}
+                    className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                  >
+                    <Star className={`w-6 h-6 ${
+                      star <= selectedRating 
+                        ? "fill-amber-400 text-amber-400" 
+                        : "text-slate-300"
+                    }`} />
+                  </button>
+                ))}
+                <span className="text-xs font-extrabold text-slate-900 font-mono ml-2">
+                  {selectedRating} / 5 Stars
+                </span>
+              </div>
+            </div>
+
+            {/* Executive Assessment Tag */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Assessment Tag:</label>
+              <div className="flex flex-wrap gap-1.5">
+                {["Exceeds Standard", "Brand-Certified", "Compliant with Edits", "Needs Guideline Coaching"].map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setSelectedAssessment(tag)}
+                    className={`px-2.5 py-1 text-xs rounded-lg border transition-all ${
+                      selectedAssessment === tag
+                        ? "bg-slate-900 text-white font-bold border-slate-900"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Feedback Comment */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Executive Feedback Note:</label>
+              <textarea
+                rows={3}
+                value={approvalComment}
+                onChange={(e) => setApprovalComment(e.target.value)}
+                placeholder="e.g. Exceptional accuracy on SLA claims and calm brand tone..."
+                className="w-full p-2.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              ></textarea>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowApprovalModal(false)}
+                className="px-3.5 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmApproval}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Confirm & Lock Certification</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
