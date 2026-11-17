@@ -52,8 +52,12 @@ export async function analyzeContentWithGemini(draftData, brandKit) {
 // Helper to format friendly model labels
 function formatModelLabel(modelId, keyLabel) {
   if (!modelId) return `Google Gemini (${keyLabel})`;
+  if (modelId === "gemini-3.1-flash-lite") {
+    return `Google Gemini 3.1 Flash-Lite ⚡ (Fastest) (${keyLabel})`;
+  }
   const clean = modelId
     .replace(/^gemini-/, "Google Gemini ")
+    .replace(/-flash-lite/, " Flash-Lite ⚡")
     .replace(/-flash/, " Flash")
     .replace(/-pro/, " Pro")
     .replace(/-latest/, " Latest");
@@ -64,15 +68,17 @@ function formatModelLabel(modelId, keyLabel) {
 // 1. Live Google Gemini API Integration
 // ---------------------------------------------------------------------------
 async function callLiveGeminiAPI(draftData, brandKit, apiKey) {
-  const preferredModel = (typeof window !== "undefined" && localStorage.getItem("brandpulse_preferred_model")) || "gemini-3.8-flash";
+  // Default to fastest model: gemini-3.1-flash-lite
+  const preferredModel = (typeof window !== "undefined" && localStorage.getItem("brandpulse_preferred_model")) || "gemini-3.1-flash-lite";
   
-  // Model priority cascade: User preferred model -> 3.8 Flash -> 3.6 Flash -> 3.7 Flash -> 3.5 Flash -> Latest
+  // Model priority cascade: Fastest model first, followed by alternates
   const baseModels = [
     preferredModel,
+    "gemini-3.1-flash-lite",
+    "gemini-flash-lite-latest",
+    "gemini-3.5-flash-lite",
     "gemini-3.8-flash",
     "gemini-3.6-flash",
-    "gemini-3.7-flash",
-    "gemini-3.5-flash",
     "gemini-flash-latest"
   ];
   const models = Array.from(new Set(baseModels.filter(Boolean)));
@@ -129,8 +135,12 @@ Image Attached: ${draftData.hasImage ? `Yes (${draftData.bannerName || "banner.j
 }
 Respond ONLY with raw valid JSON. Do not wrap in markdown code fences.`;
 
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 4500);
+
     try {
       const response = await fetch(url, {
+        signal: ctrl.signal,
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -138,10 +148,12 @@ Respond ONLY with raw valid JSON. Do not wrap in markdown code fences.`;
           generationConfig: {
             temperature: 0.1,
             topP: 0.95,
+            maxOutputTokens: 1024,
             responseMimeType: "application/json"
           }
         })
       });
+      clearTimeout(timeout);
 
       if (!response.ok) {
         throw new Error(`Gemini API error ${response.status} on model ${model}`);
@@ -157,6 +169,7 @@ Respond ONLY with raw valid JSON. Do not wrap in markdown code fences.`;
       parsed.modelUsed = model;
       return parsed;
     } catch (err) {
+      clearTimeout(timeout);
       lastError = err;
       continue;
     }

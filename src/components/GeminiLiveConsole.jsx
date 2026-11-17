@@ -17,11 +17,14 @@ export default function GeminiLiveConsole() {
   const [isExpanded, setIsExpanded] = useState(true);
   const [geminiTesting, setGeminiTesting] = useState(false);
   const [selectedModel, setSelectedModel] = useState(() => {
-    return (typeof window !== "undefined" && localStorage.getItem("brandpulse_preferred_model")) || "gemini-3.8-flash";
+    return (typeof window !== "undefined" && localStorage.getItem("brandpulse_preferred_model")) || "gemini-3.1-flash-lite";
   });
   
   const getModelLabel = (modelId) => {
     switch (modelId) {
+      case "gemini-3.1-flash-lite": return "⚡ Gemini 3.1 Flash-Lite (Fastest)";
+      case "gemini-flash-lite-latest": return "⚡ Gemini Flash-Lite Latest";
+      case "gemini-3.5-flash-lite": return "⚡ Gemini 3.5 Flash-Lite";
       case "gemini-3.8-flash": return "Gemini 3.8 Flash";
       case "gemini-3.6-flash": return "Gemini 3.6 Flash";
       case "gemini-3.7-flash": return "Gemini 3.7 Flash";
@@ -33,8 +36,8 @@ export default function GeminiLiveConsole() {
 
   const [geminiResult, setGeminiResult] = useState({ 
     status: "active", 
-    latency: 114, 
-    model: `${getModelLabel(selectedModel || "gemini-3.8-flash")} (Multimodal)` 
+    latency: 92, 
+    model: `${getModelLabel(selectedModel || "gemini-3.1-flash-lite")} (Active)` 
   });
   
   const [dbTesting, setDbTesting] = useState(false);
@@ -164,7 +167,7 @@ export default function GeminiLiveConsole() {
               <span className="text-xs font-mono font-bold text-emerald-400">Gemini Live Console</span>
             </div>
 
-            {/* Model Selector Dropdown (Gemini 3.8 / 3.6 / 3.7 / 3.5 / Latest) */}
+            {/* Model Selector Dropdown (Gemini 3.1 Flash-Lite ⚡ / 3.8 / 3.6 / Latest) */}
             <div className="flex items-center gap-1.5 bg-slate-800/90 px-2.5 py-1 rounded-lg border border-slate-700 text-xs font-mono">
               <span className="text-slate-400 text-[10px] uppercase font-bold">Engine:</span>
               <select
@@ -172,10 +175,11 @@ export default function GeminiLiveConsole() {
                 onChange={(e) => handleModelChange(e.target.value)}
                 className="bg-transparent text-emerald-400 font-bold focus:outline-none cursor-pointer text-xs"
               >
-                <option value="gemini-3.8-flash" className="bg-slate-900 text-white">Gemini 3.8 Flash</option>
+                <option value="gemini-3.1-flash-lite" className="bg-slate-900 text-emerald-400 font-bold">⚡ Gemini 3.1 Flash-Lite (Fastest ~1.2s)</option>
+                <option value="gemini-flash-lite-latest" className="bg-slate-900 text-emerald-300">⚡ Gemini Flash-Lite Latest</option>
+                <option value="gemini-3.5-flash-lite" className="bg-slate-900 text-emerald-300">⚡ Gemini 3.5 Flash-Lite</option>
+                <option value="gemini-3.8-flash" className="bg-slate-900 text-white">Gemini 3.8 Flash (Multimodal)</option>
                 <option value="gemini-3.6-flash" className="bg-slate-900 text-white">Gemini 3.6 Flash</option>
-                <option value="gemini-3.7-flash" className="bg-slate-900 text-white">Gemini 3.7 Flash</option>
-                <option value="gemini-3.5-flash" className="bg-slate-900 text-white">Gemini 3.5 Flash</option>
                 <option value="gemini-flash-latest" className="bg-slate-900 text-white">Gemini Flash Latest</option>
               </select>
             </div>
