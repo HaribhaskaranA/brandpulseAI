@@ -19,7 +19,9 @@ import {
   GitCompare,
   FileCheck2,
   Lock,
-  User
+  User,
+  Zap,
+  RefreshCw
 } from "lucide-react";
 import ReportCard from "./ReportCard";
 import ComplianceCertificateModal from "./ComplianceCertificateModal";
@@ -32,7 +34,9 @@ export default function LeaderView({
   onSelectDraft, 
   onApproveDraft, 
   onRequestRevisions, 
-  onAddComment 
+  onAddComment,
+  onRunAudit,
+  isAuditing = false
 }) {
   // Safe fallback leader profile for zero-crash resiliency
   const safeLeaderProfile = {
@@ -47,6 +51,7 @@ export default function LeaderView({
   };
 
   const [activeSubTab, setActiveSubTab] = useState("review_desk"); // "review_desk" | "leader_profile"
+  const [selectedLeaderModel, setSelectedLeaderModel] = useState("gemini-3.1-flash-lite");
   const [commentText, setCommentText] = useState("");
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [showCertModal, setShowCertModal] = useState(false);
@@ -490,12 +495,59 @@ export default function LeaderView({
                   )}
                 </div>
 
-                {/* Live Shared Gemini Audit Report */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-bold font-mono text-slate-900 uppercase">
-                    <Sparkles className="w-4 h-4 text-emerald-600" />
-                    <span>Shared Gemini Pre-Flight Audit Report</span>
+                {/* Live Shared Gemini Audit Report & Leader AI Review Toolbar */}
+                <div className="space-y-3">
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                          <span>Leader AI Verification Desk</span>
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 font-bold border border-blue-200">
+                            Re-audit with AI
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">Leaders can independently trigger AI review using any model.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={selectedLeaderModel}
+                        onChange={(e) => setSelectedLeaderModel(e.target.value)}
+                        className="px-2.5 py-1 text-xs font-semibold bg-white border border-slate-300 rounded-lg text-slate-900 cursor-pointer shadow-2xs"
+                      >
+                        <option value="gemini-3.1-flash-lite">⚡ Gemini 3.1 Flash-Lite (Fastest)</option>
+                        <option value="gemini-flash-lite-latest">⚡ Gemini Flash-Lite Latest</option>
+                        <option value="gemini-3.5-flash-lite">⚡ Gemini 3.5 Flash-Lite</option>
+                        <option value="gemini-3.8-flash">Gemini 3.8 Flash (Multimodal)</option>
+                        <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
+                        <option value="local-engine">⚡ Local Rule Engine (~15ms)</option>
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={() => onRunAudit && onRunAudit(activeDraft, selectedLeaderModel)}
+                        disabled={isAuditing}
+                        className="px-3.5 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        {isAuditing ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Auditing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                            <span>Run Leader AI Check</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
+
                   <ReportCard audit={activeDraft.lastAudit} onApplyFix={null} />
                 </div>
 

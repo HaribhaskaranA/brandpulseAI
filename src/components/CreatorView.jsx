@@ -24,6 +24,7 @@ import {
   FileType,
   FileSpreadsheet,
   Paperclip,
+  Zap,
   X
 } from "lucide-react";
 import ReportCard from "./ReportCard";
@@ -47,7 +48,17 @@ export default function CreatorView({
   const [activeSubTab, setActiveSubTab] = useState("editor"); // "editor" | "profile"
   const [showSendModal, setShowSendModal] = useState(false);
   const [targetReviewer, setTargetReviewer] = useState("both"); // "leader" | "manager" | "both"
+  const [selectedAuditModel, setSelectedAuditModel] = useState(() => {
+    return (typeof window !== "undefined" && localStorage.getItem("brandpulse_preferred_model")) || "gemini-3.1-flash-lite";
+  });
   const fileInputRef = useRef(null);
+
+  const handleAuditModelChange = (model) => {
+    setSelectedAuditModel(model);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("brandpulse_preferred_model", model);
+    }
+  };
 
   const channels = ["Social Post", "Ad Copy", "Email Campaign", "Document Draft"];
 
@@ -491,11 +502,46 @@ export default function CreatorView({
                 </div>
 
                 {/* Action Buttons Toolbar */}
-                <div className="pt-3 border-t border-slate-100 space-y-2">
+                <div className="pt-3 border-t border-slate-100 space-y-3">
+                  
+                  {/* Model Selection Toolbar (Choose AI Model Before Running Audit) */}
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                        <Zap className="w-4 h-4 fill-amber-500 text-amber-500" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                          <span>1. Choose AI Model</span>
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
+                            Fastest Recommended
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">Select model first: choose fastest for instant &lt; 2s evaluation.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={selectedAuditModel}
+                        onChange={(e) => handleAuditModelChange(e.target.value)}
+                        className="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-lg text-slate-900 shadow-2xs focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                      >
+                        <option value="gemini-3.1-flash-lite">⚡ Gemini 3.1 Flash-Lite (Fastest ~1.2s - Default)</option>
+                        <option value="gemini-flash-lite-latest">⚡ Gemini Flash-Lite Latest (Turbo Mode)</option>
+                        <option value="gemini-3.5-flash-lite">⚡ Gemini 3.5 Flash-Lite (Fast Efficient)</option>
+                        <option value="gemini-3.8-flash">Gemini 3.8 Flash (Deep Multimodal Reasoning)</option>
+                        <option value="gemini-3.6-flash">Gemini 3.6 Flash (High-Speed Audit)</option>
+                        <option value="gemini-flash-latest">Gemini Flash Latest</option>
+                        <option value="local-engine">⚡ Local Deterministic Engine (Instant ~15ms)</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <button
                       type="button"
-                      onClick={onRunAudit}
+                      onClick={() => onRunAudit && onRunAudit(selectedAuditModel)}
                       disabled={isAuditing}
                       className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
                     >
@@ -507,7 +553,7 @@ export default function CreatorView({
                       ) : (
                         <>
                           <Sparkles className="w-4 h-4" />
-                          <span>Run Gemini Multimodal Check</span>
+                          <span>2. Run Gemini Brand Check</span>
                         </>
                       )}
                     </button>

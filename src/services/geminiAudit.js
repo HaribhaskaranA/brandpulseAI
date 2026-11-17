@@ -1,7 +1,12 @@
 // Service for Google Gemini Brand Evaluation & Grounded Rule Verification
 // Features automatic Dual-API Key Failover (Primary -> Backup) and local intelligent rule-matching fallback
 
-export async function analyzeContentWithGemini(draftData, brandKit) {
+export async function analyzeContentWithGemini(draftData, brandKit, customModel = null) {
+  // If user selected instant deterministic local engine, execute immediately
+  if (customModel === "local-engine") {
+    return runLocalGroundedAudit(draftData, brandKit);
+  }
+
   // Retrieve primary and backup keys from environment or localStorage overrides
   const primaryKey = 
     (typeof window !== "undefined" && localStorage.getItem("brandpulse_gemini_key")) ||
@@ -16,7 +21,7 @@ export async function analyzeContentWithGemini(draftData, brandKit) {
   // 1. Try Primary Key first if available
   if (primaryKey && primaryKey.trim().length > 10) {
     try {
-      const liveResult = await callLiveGeminiAPI(draftData, brandKit, primaryKey.trim());
+      const liveResult = await callLiveGeminiAPI(draftData, brandKit, primaryKey.trim(), customModel);
       if (liveResult && liveResult.overallScore !== undefined) {
         return {
           ...liveResult,
@@ -32,7 +37,7 @@ export async function analyzeContentWithGemini(draftData, brandKit) {
   // 2. Automatic Failover: Try Backup Key if primary failed or was unavailable
   if (backupKey && backupKey.trim().length > 10) {
     try {
-      const backupResult = await callLiveGeminiAPI(draftData, brandKit, backupKey.trim());
+      const backupResult = await callLiveGeminiAPI(draftData, brandKit, backupKey.trim(), customModel);
       if (backupResult && backupResult.overallScore !== undefined) {
         return {
           ...backupResult,
@@ -67,9 +72,11 @@ function formatModelLabel(modelId, keyLabel) {
 // ---------------------------------------------------------------------------
 // 1. Live Google Gemini API Integration
 // ---------------------------------------------------------------------------
-async function callLiveGeminiAPI(draftData, brandKit, apiKey) {
-  // Default to fastest model: gemini-3.1-flash-lite
-  const preferredModel = (typeof window !== "undefined" && localStorage.getItem("brandpulse_preferred_model")) || "gemini-3.1-flash-lite";
+async function callLiveGeminiAPI(draftData, brandKit, apiKey, customModel = null) {
+  // Default to fastest model: gemini-3.1-flash-lite, or user-chosen model
+  const preferredModel = customModel || 
+    (typeof window !== "undefined" && localStorage.getItem("brandpulse_preferred_model")) || 
+    "gemini-3.1-flash-lite";
   
   // Model priority cascade: Fastest model first, followed by alternates
   const baseModels = [
@@ -105,6 +112,16 @@ Channel: ${draftData.channel || "General"}
 Title: ${draftData.title || "Untitled Draft"}
 Copy: "${draftData.content || ""}"
 Image Attached: ${draftData.hasImage ? `Yes (${draftData.bannerName || "banner.jpg"}), Has Low Contrast: ${draftData.hasImageContrastIssue}` : "No"}
+
+=== SCORING FORMULA (CALIBRATED & DETERMINISTIC) ===
+Calculate overallScore strictly using this standard rubric:
+- Base score: 100
+- For each violation in "negatives":
+  * Deduct 15 points if severity is "error" (banned terminology, unverified superlatives, false uptime claim)
+  * Deduct 8 points if severity is "warning" (informal wording, missing contrast, passive phrasing)
+- overallScore MUST equal: Math.max(20, Math.min(98, 100 - (errors * 15 + warnings * 8)))
+- If 0 violations are found, overallScore MUST be between 94 and 98.
+- Category score = Math.max(30, Math.min(100, 100 - (violations_in_category * 15)))
 
 === AUDIT INSTRUCTIONS ===
 1. Cross-reference the draft strictly against the provided brand guidelines.
@@ -167,6 +184,43 @@ Respond ONLY with raw valid JSON. Do not wrap in markdown code fences.`;
       const parsed = JSON.parse(cleanJson);
       parsed.timestamp = new Date().toISOString();
       parsed.modelUsed = model;
+
+      // Deterministic cross-model scoring calibration
+      const negatives = Array.isArray(parsed.negatives) ? parsed.negatives : [];
+      const errorCount = negatives.filter(n => n.severity === "error").length;
+      const warningCount = negatives.filter(n => n.severity !== "error").length;
+
+      let calibratedScore = 100 - (errorCount * 15 + warningCount * 8);
+      calibratedScore = Math.max(20, Math.min(98, calibratedScore));
+
+      // Re-align overallScore if model produced an uncalibrated outlier
+      if (typeof parsed.overallScore !== "number" || Math.abs(parsed.overallScore - calibratedScore) > 10) {
+        parsed.overallScore = calibratedScore;
+      }
+
+      // Re-align categories to match actual violations detected
+      const categoryNames = [
+        "Tone & Voice", 
+        "Terminology", 
+        "Fact & Claim Verification", 
+        "Visual Consistency", 
+        "Accessibility"
+      ];
+      parsed.categories = categoryNames.map(catName => {
+        const catViolations = negatives.filter(n => n.category === catName);
+        const catErrors = catViolations.filter(n => n.severity === "error").length;
+        const catWarnings = catViolations.filter(n => n.severity !== "error").length;
+        
+        let catScore = 100 - (catErrors * 25 + catWarnings * 12);
+        catScore = Math.max(30, Math.min(100, catScore));
+        const catStatus = catErrors > 0 ? "error" : catWarnings > 0 ? "warning" : "good";
+        return {
+          name: catName,
+          score: catScore,
+          status: catStatus
+        };
+      });
+
       return parsed;
     } catch (err) {
       clearTimeout(timeout);

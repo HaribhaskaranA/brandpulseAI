@@ -280,21 +280,27 @@ export default function App() {
     showToast("New private draft created in Supabase table!");
   };
 
-  const handleRunAudit = async () => {
+  const handleRunAudit = async (targetPost = null, customModel = null) => {
+    const postToAudit = targetPost || activeDraft;
+    if (!postToAudit) return;
+
     setIsAuditing(true);
     try {
-      await new Promise(r => setTimeout(r, 600));
-      const auditResult = await analyzeContentWithGemini(activeDraft, brandKit);
+      const preferred = customModel || 
+        (typeof window !== "undefined" && localStorage.getItem("brandpulse_preferred_model")) || 
+        "gemini-3.1-flash-lite";
+
+      const auditResult = await analyzeContentWithGemini(postToAudit, brandKit, preferred);
       const updated = {
-        ...activeDraft,
+        ...postToAudit,
         lastAudit: auditResult,
         history: [
-          ...(activeDraft.history || []),
+          ...(postToAudit.history || []),
           {
             id: `hist-${Date.now()}`,
             timestamp: new Date().toISOString(),
             type: "audit",
-            author: "Google Gemini AI",
+            author: `${auditResult.modelName || "Gemini AI"}`,
             note: `Pre-flight audit generated (Score: ${auditResult.overallScore}/100)`
           }
         ]
@@ -304,13 +310,13 @@ export default function App() {
 
       // Record anonymized telemetry
       recordAuditTelemetry({
-        postId: activeDraft.id,
+        postId: postToAudit.id,
         overallScore: auditResult.overallScore,
         categoriesSummary: auditResult.categories,
         violationsCount: auditResult.negatives?.length || 0
       }).catch(() => {});
 
-      showToast(`Gemini Pre-Flight Check Complete! Score: ${auditResult.overallScore}/100`);
+      showToast(`AI Audit Complete (${auditResult.modelName || "Gemini"}): Score ${auditResult.overallScore}/100!`);
     } catch (err) {
       console.error(err);
       showToast("Error running audit", "error");
@@ -644,6 +650,8 @@ export default function App() {
             onApproveDraft={handleApproveDraft}
             onRequestRevisions={handleRequestRevisions}
             onAddComment={handleAddComment}
+            onRunAudit={handleRunAudit}
+            isAuditing={isAuditing}
           />
         )}
 
@@ -659,6 +667,8 @@ export default function App() {
             onApproveDraft={handleApproveDraft}
             onRequestRevisions={handleRequestRevisions}
             onAddComment={handleAddComment}
+            onRunAudit={handleRunAudit}
+            isAuditing={isAuditing}
           />
         )}
 
