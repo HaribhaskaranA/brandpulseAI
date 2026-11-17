@@ -24,41 +24,76 @@ import {
   ArrowUpRight,
   MessageSquare,
   XCircle,
-  Inbox
+  Inbox,
+  User,
+  Users,
+  Paperclip
 } from "lucide-react";
 import ReportCard from "./ReportCard";
+import CreatorProfileCard from "./CreatorProfileCard";
+import { INITIAL_ANALYTICS, INITIAL_CREATOR_PROFILE } from "../data/initialData";
 
 export default function ManagerView({ 
   brandKit, 
   onAddRule, 
   analytics,
   posts = [],
+  creatorProfile = INITIAL_CREATOR_PROFILE,
   onApproveDraft,
   onRequestRevisions,
   onAddComment
 }) {
-  const [activeTab, setActiveTab] = useState("rules_book"); // "rules_book" | "review_desk" | "insights"
+  // Safe fallback analytics to prevent any runtime crashes from stale localStorage
+  const safeAnalytics = {
+    stats: {
+      totalAuditsCount: analytics?.stats?.totalAuditsCount ?? INITIAL_ANALYTICS.stats.totalAuditsCount ?? 1420,
+      averageTurnaroundHours: analytics?.stats?.averageTurnaroundHours ?? INITIAL_ANALYTICS.stats.averageTurnaroundHours ?? 1.8,
+      turnaroundReductionPercent: analytics?.stats?.turnaroundReductionPercent ?? INITIAL_ANALYTICS.stats.turnaroundReductionPercent ?? 52,
+      offBrandLeaksPrevented: analytics?.stats?.offBrandLeaksPrevented ?? INITIAL_ANALYTICS.stats.offBrandLeaksPrevented ?? 312,
+      activeTeamCreators: analytics?.stats?.activeTeamCreators ?? INITIAL_ANALYTICS.stats.activeTeamCreators ?? 46,
+      companyBrandHealthScore: analytics?.stats?.companyBrandHealthScore ?? INITIAL_ANALYTICS.stats.companyBrandHealthScore ?? 94
+    },
+    trend30Days: (analytics?.trend30Days && analytics.trend30Days.length > 0) 
+      ? analytics.trend30Days 
+      : INITIAL_ANALYTICS.trend30Days,
+    recurringViolations: (analytics?.recurringViolations && analytics.recurringViolations.length > 0) 
+      ? analytics.recurringViolations 
+      : INITIAL_ANALYTICS.recurringViolations,
+    creatorLeaderboard: (analytics?.creatorLeaderboard && analytics.creatorLeaderboard.length > 0) 
+      ? analytics.creatorLeaderboard 
+      : INITIAL_ANALYTICS.creatorLeaderboard
+  };
+
+  const [activeTab, setActiveTab] = useState("pending_reviews"); // "pending_reviews" | "rules_book" | "creators" | "insights"
   const [isAddingRule, setIsAddingRule] = useState(false);
   const [selectedRuleCategory, setSelectedRuleCategory] = useState("all");
   const [ruleSearchQuery, setRuleSearchQuery] = useState("");
   
-  // Selected draft for Manager Review Desk
-  const managerReviewQueue = posts.filter(p => 
+  // Drafts submitted to Manager (manager_review, both, or approved)
+  const managerSubmittedDrafts = posts.filter(p => 
     p.visibility === "manager_review" || 
     p.visibility === "both" || 
     p.status === "Approved"
   );
+
+  // Review Pending Queue (strict status "Needs Review")
+  const pendingManagerQueue = managerSubmittedDrafts.filter(p => p.status === "Needs Review");
+
   const [selectedReviewId, setSelectedReviewId] = useState(
-    managerReviewQueue.find(p => p.status === "Needs Review")?.id || managerReviewQueue[0]?.id || ""
+    pendingManagerQueue[0]?.id || managerSubmittedDrafts[0]?.id || ""
   );
   
-  // Rating & Approval modal state
+  // Rating & Certification modal state
   const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [targetDraftToRate, setTargetDraftToRate] = useState(null);
   const [selectedRating, setSelectedRating] = useState(5);
   const [selectedAssessment, setSelectedAssessment] = useState("Brand-Certified");
   const [approvalComment, setApprovalComment] = useState("");
   
-  // Inspection modal for published draft from Rules Book
+  // Creator Profile Inspect modal state
+  const [inspectingCreator, setInspectingCreator] = useState(null);
+
+  // Published draft inspect modal (from Rules Book)
   const [inspectingPost, setInspectingPost] = useState(null);
 
   // New rule form state
@@ -72,7 +107,26 @@ export default function ManagerView({
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
   // Active post in review desk
-  const activeReviewPost = managerReviewQueue.find(p => p.id === selectedReviewId) || managerReviewQueue[0];
+  const activeReviewPost = managerSubmittedDrafts.find(p => p.id === selectedReviewId) || managerSubmittedDrafts[0];
+
+  const handleOpenRateModal = (draftItem) => {
+    setTargetDraftToRate(draftItem);
+    setSelectedRating(5);
+    setSelectedAssessment("Brand-Certified");
+    setApprovalComment("Certified by Brand Policy Authority. Adheres strictly to Acme Cloud Brand Book v2.1.");
+    setShowApprovalModal(true);
+  };
+
+  const handleConfirmApproval = () => {
+    if (!targetDraftToRate) return;
+    onApproveDraft && onApproveDraft(targetDraftToRate.id, {
+      rating: selectedRating,
+      assessment: selectedAssessment,
+      comment: approvalComment.trim() || "Certified by Brand Policy Authority. Adheres strictly to Acme Cloud Brand Book v2.1."
+    }, "Manager");
+    setShowApprovalModal(false);
+    setTargetDraftToRate(null);
+  };
 
   const handleCreateRule = (e) => {
     e.preventDefault();
@@ -112,16 +166,6 @@ export default function ManagerView({
     }, 1500);
   };
 
-  const handleConfirmApproval = () => {
-    if (!activeReviewPost) return;
-    onApproveDraft && onApproveDraft(activeReviewPost.id, {
-      rating: selectedRating,
-      assessment: selectedAssessment,
-      comment: approvalComment.trim() || "Certified by Brand Policy Authority. Adheres strictly to Acme Cloud Brand Book v2.1."
-    }, "Manager");
-    setShowApprovalModal(false);
-  };
-
   // Filter rules by category and search
   const filteredRules = brandKit.rules.filter(rule => {
     const matchesCat = selectedRuleCategory === "all" || rule.category === selectedRuleCategory;
@@ -137,15 +181,12 @@ export default function ManagerView({
 
   // Helper to find compliant published post for a rule
   const getCompliantPostForRule = (rule) => {
-    // Check if any published post matches rule example or matches category
     if (rule.exampleCompliantPost) {
       const match = publishedPosts.find(p => p.title.toLowerCase().includes(rule.exampleCompliantPost.toLowerCase()));
       if (match) return match;
     }
     return publishedPosts[0] || null;
   };
-
-  const pendingManagerCount = managerReviewQueue.filter(p => p.status === "Needs Review").length;
 
   return (
     <div className="space-y-6">
@@ -167,8 +208,29 @@ export default function ManagerView({
           </p>
         </div>
 
-        {/* Tab Switcher */}
+        {/* 4 Clean Tabs */}
         <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-xs flex-wrap gap-1">
+          
+          {/* TAB 1: Review Pending Section */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("pending_reviews")}
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+              activeTab === "pending_reviews"
+                ? "bg-white text-slate-900 shadow-xs font-bold"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Review Pending & Drafts</span>
+            {pendingManagerQueue.length > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-bold animate-pulse">
+                {pendingManagerQueue.length}
+              </span>
+            )}
+          </button>
+
+          {/* TAB 2: Rules Book & Published Drafts */}
           <button
             type="button"
             onClick={() => setActiveTab("rules_book")}
@@ -182,24 +244,21 @@ export default function ManagerView({
             <span>Rules Book & Published Drafts ({brandKit.rules.length})</span>
           </button>
 
+          {/* TAB 3: Creator Profiles Directory */}
           <button
             type="button"
-            onClick={() => setActiveTab("review_desk")}
+            onClick={() => setActiveTab("creators")}
             className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
-              activeTab === "review_desk"
+              activeTab === "creators"
                 ? "bg-white text-slate-900 shadow-xs font-bold"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Manager Reviews & Ratings</span>
-            {pendingManagerCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-bold">
-                {pendingManagerCount}
-              </span>
-            )}
+            <Users className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Creator Profiles & Performance</span>
           </button>
 
+          {/* TAB 4: Infographics & Insights */}
           <button
             type="button"
             onClick={() => setActiveTab("insights")}
@@ -212,20 +271,242 @@ export default function ManagerView({
             <BarChart3 className="w-3.5 h-3.5 text-emerald-600" />
             <span>Infographics & Insights</span>
           </button>
+
         </div>
       </div>
 
       {/* =========================================================================
-          TAB 1: BRAND GUIDELINES RULES BOOK WITH PUBLISHED DRAFTS
+          TAB 1: REVIEW PENDING SECTION & DRAFTS SUBMITTED TO MANAGERS
+         ========================================================================= */}
+      {activeTab === "pending_reviews" && (
+        <div className="space-y-6">
+          
+          {/* Top Status Strip */}
+          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-xs flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-emerald-600" />
+                <span>Review Pending Section: Direct & Dual Sign-Off</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Inspect drafts submitted directly to the Manager or fast-tracked to Both. View creator profiles, evaluate adherence, and award ratings.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                {pendingManagerQueue.length} Pending Approval
+              </span>
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                {publishedPosts.length} Certified Publications
+              </span>
+            </div>
+          </div>
+
+          {/* 1. REVIEW PENDING SECTION CARDS */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs font-mono font-bold text-slate-700 px-1">
+              <span>AWAITING MANAGER APPROVAL & RATING ({pendingManagerQueue.length}):</span>
+              <span className="text-amber-700">Requires Executive Decision</span>
+            </div>
+
+            {pendingManagerQueue.length === 0 ? (
+              <div className="p-8 text-center bg-white rounded-xl border border-slate-200 shadow-xs space-y-2">
+                <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <h4 className="text-xs font-bold text-slate-900">Zero Pending Manager Reviews</h4>
+                <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                  All submitted drafts have been reviewed and certified. New drafts sent to "Manager" or "Both at Once" will appear here automatically.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {pendingManagerQueue.map((item) => (
+                  <div 
+                    key={item.id}
+                    className="p-5 bg-white rounded-xl border border-amber-200/80 shadow-xs hover:border-amber-300 transition-all space-y-4"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-800">
+                          {item.channel}
+                        </span>
+                        {item.visibility === "both" && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                            Fast-Track (Both Desks)
+                          </span>
+                        )}
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 animate-pulse">
+                          Pending Review
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setInspectingCreator(creatorProfile)}
+                          className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1.5 transition-all"
+                        >
+                          <User className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>View Creator Profile</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                      <div className="lg:col-span-8 space-y-2">
+                        <h4 className="text-sm font-extrabold text-slate-900">{item.title}</h4>
+                        <p className="text-xs text-slate-700 leading-relaxed font-sans bg-slate-50 p-3 rounded-lg border border-slate-200">
+                          "{item.content}"
+                        </p>
+
+                        {/* Attached Asset Info (Image or PDF) */}
+                        {item.hasImage && item.bannerUrl ? (
+                          <div className="flex items-center gap-2 text-xs text-slate-500 pt-1">
+                            <Paperclip className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Attached Image: <strong className="text-slate-800">{item.bannerName || "banner.jpg"}</strong></span>
+                          </div>
+                        ) : (item.assetType === "pdf" || (item.bannerName && item.bannerName.endsWith(".pdf"))) ? (
+                          <div className="flex items-center gap-2 text-xs text-slate-500 pt-1">
+                            <Paperclip className="w-3.5 h-3.5 text-red-500" />
+                            <span>Attached Document: <strong className="text-slate-800">{item.bannerName || "whitepaper.pdf"}</strong></span>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="lg:col-span-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                        <div>
+                          <div className="text-[10px] font-mono text-slate-500 uppercase font-bold">
+                            Gemini Compliance Check
+                          </div>
+                          <div className="text-xl font-extrabold text-emerald-700 font-mono mt-0.5">
+                            {item.lastAudit?.overallScore || 96}/100
+                          </div>
+                          <p className="text-[11px] text-slate-600 line-clamp-2 mt-1">
+                            {item.lastAudit?.summary || "Adheres to brand rules and SLA specifications."}
+                          </p>
+                        </div>
+
+                        {/* Decision Buttons */}
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => onRequestRevisions && onRequestRevisions(item.id)}
+                            className="flex-1 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-all"
+                          >
+                            Return
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenRateModal(item)}
+                            className="flex-1 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs flex items-center justify-center gap-1 transition-all cursor-pointer"
+                          >
+                            <Award className="w-3.5 h-3.5" />
+                            <span>Rate & Certify</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 2. ALL DRAFTS SUBMITTED TO MANAGERS DIRECTORY */}
+          <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-xs space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-emerald-600" />
+                  <span>Drafts Submitted to Managers Archive ({managerSubmittedDrafts.length})</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Complete institutional record of all creator submissions sent for Manager or Dual approval.
+                </p>
+              </div>
+              <span className="text-[11px] font-mono text-slate-500">
+                Supabase Synced
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-400 font-mono text-[11px]">
+                    <th className="pb-2 font-semibold">Title & Channel</th>
+                    <th className="pb-2 font-semibold">Author</th>
+                    <th className="pb-2 font-semibold">Destination</th>
+                    <th className="pb-2 font-semibold">Compliance Score</th>
+                    <th className="pb-2 font-semibold">Manager Rating</th>
+                    <th className="pb-2 font-semibold">Status</th>
+                    <th className="pb-2 font-semibold text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {managerSubmittedDrafts.map((draftItem) => (
+                    <tr key={draftItem.id} className="hover:bg-slate-50/80 transition-all">
+                      <td className="py-3">
+                        <div className="font-bold text-slate-900">{draftItem.title}</div>
+                        <div className="text-[10px] text-slate-500 font-mono">{draftItem.channel}</div>
+                      </td>
+                      <td className="py-3 text-slate-600">{draftItem.author || "Content Creator"}</td>
+                      <td className="py-3 font-mono text-[11px]">
+                        {draftItem.visibility === "both" ? "Both Desks" : "Manager Only"}
+                      </td>
+                      <td className="py-3 font-mono font-bold text-emerald-700">
+                        {draftItem.lastAudit?.overallScore || 92}/100
+                      </td>
+                      <td className="py-3">
+                        {draftItem.reviewRating ? (
+                          <div className="flex items-center gap-1">
+                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                            <span className="font-mono font-bold text-slate-900">{draftItem.reviewRating}.0</span>
+                            <span className="text-[10px] text-slate-400">({draftItem.reviewAssessment || "Certified"})</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-[10px] italic">Unrated</span>
+                        )}
+                      </td>
+                      <td className="py-3">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+                          draftItem.status === "Approved"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-amber-100 text-amber-900"
+                        }`}>
+                          {draftItem.status}
+                        </span>
+                      </td>
+                      <td className="py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setInspectingPost(draftItem)}
+                          className="px-2.5 py-1 text-[11px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded transition-all"
+                        >
+                          Inspect
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 2: BRAND GUIDELINES RULES BOOK WITH PUBLISHED DRAFTS
          ========================================================================= */}
       {activeTab === "rules_book" && (
         <div className="space-y-6">
           
-          {/* Top Controls: Upload Brand Book, Add Rule, and Filter Bar */}
+          {/* Controls: Search, Filter, Upload, Add Rule */}
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               
-              {/* Search & Category Filter */}
               <div className="flex items-center gap-2 flex-1">
                 <div className="relative flex-1 max-w-xs">
                   <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -252,7 +533,6 @@ export default function ManagerView({
                 </select>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -275,9 +555,8 @@ export default function ManagerView({
 
             </div>
 
-            {/* Sub-note on Rule Adherence */}
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-              <span>Showing <strong>{filteredRules.length}</strong> active brand book rules mapped to published creator drafts</span>
+              <span>Showing <strong>{filteredRules.length}</strong> active rules mapped to published creator drafts</span>
               <span className="font-mono text-emerald-700 font-semibold">Strict RAG Grounding Active</span>
             </div>
           </div>
@@ -414,7 +693,7 @@ export default function ManagerView({
             </div>
           </div>
 
-          {/* Company Rules Book: Each Rule Mapped to Published Creator Drafts */}
+          {/* Company Rules Book List: Each Rule Mapped to Published Creator Drafts */}
           <div className="space-y-4">
             <div className="flex items-center justify-between text-xs text-slate-500 font-medium px-1">
               <span className="font-bold text-slate-800">
@@ -431,7 +710,6 @@ export default function ManagerView({
                     key={rule.id} 
                     className="p-5 bg-white rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition-all space-y-4"
                   >
-                    {/* Top Row: Category & Badges */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
                       <div className="flex items-center gap-2">
                         <span className="px-2.5 py-1 text-[11px] font-mono font-bold rounded-md bg-slate-100 text-slate-800 border border-slate-200">
@@ -450,7 +728,6 @@ export default function ManagerView({
                       </div>
                     </div>
 
-                    {/* Rule Title & Guideline Text */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                       <div className="lg:col-span-7 space-y-2">
                         <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
@@ -461,7 +738,6 @@ export default function ManagerView({
                           {rule.guidelineText}
                         </p>
 
-                        {/* Verified Ground Truth Fact */}
                         {rule.verifiedFact && (
                           <div className="p-2.5 bg-emerald-50/70 border border-emerald-200 rounded-lg text-xs text-emerald-950 flex items-start gap-2">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
@@ -472,7 +748,6 @@ export default function ManagerView({
                           </div>
                         )}
 
-                        {/* Banned Terms List */}
                         {rule.bannedTerms && rule.bannedTerms.length > 0 && (
                           <div className="text-xs text-slate-500 pt-1">
                             <span className="font-semibold text-slate-700">Strictly Prohibited Phrases: </span>
@@ -487,7 +762,7 @@ export default function ManagerView({
                         )}
                       </div>
 
-                      {/* Right Column: Published Creator Draft adhering to this rule */}
+                      {/* Right: Published Draft Adhering to this Rule */}
                       <div className="lg:col-span-5 bg-slate-50/80 p-3.5 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
                         <div>
                           <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/80">
@@ -557,257 +832,65 @@ export default function ManagerView({
       )}
 
       {/* =========================================================================
-          TAB 2: MANAGER REVIEW DESK & CREATOR RATING
+          TAB 3: CREATOR PROFILES & TEAM PERFORMANCE DIRECTORY
          ========================================================================= */}
-      {activeTab === "review_desk" && (
+      {activeTab === "creators" && (
         <div className="space-y-6">
-          
-          {/* Desk Header Info */}
           <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-xs flex items-center justify-between flex-wrap gap-3">
             <div>
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                <UserCheck className="w-4 h-4 text-emerald-600" />
-                <span>Manager Review Desk: Direct & Dual Sign-Off Queue</span>
+                <Users className="w-4 h-4 text-emerald-600" />
+                <span>Creator Team Profiles & Quality Assessments</span>
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Inspect content submitted specifically to the Manager or fast-tracked to Both. Rate creators on quality to build institutional memory.
+                Review creators' individual brand compliance records, award recognition tiers, and inspect full performance scorecards.
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                {pendingManagerCount} Pending Approval
-              </span>
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                {publishedPosts.length} Certified
-              </span>
-            </div>
+            <button
+              type="button"
+              onClick={() => setInspectingCreator(creatorProfile)}
+              className="px-3 py-1.5 text-xs font-bold bg-emerald-600 text-white rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Inspect Lead Creator Profile</span>
+            </button>
           </div>
 
-          {managerReviewQueue.length === 0 ? (
-            <div className="p-12 text-center bg-white rounded-xl border border-slate-200 shadow-xs space-y-3">
-              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
-                <Inbox className="w-6 h-6" />
-              </div>
-              <h4 className="text-sm font-bold text-slate-900">No Manager Reviews Pending</h4>
-              <p className="text-xs text-slate-500 max-w-md mx-auto">
-                Creator drafts remain private until creators choose <strong>"Manager Only"</strong> or <strong>"Both at Once"</strong> in the Send for Review modal.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              
-              {/* Left Column: Review Queue List (4 cols) */}
-              <div className="lg:col-span-4 space-y-3">
-                <div className="text-xs font-bold text-slate-700 px-1 font-mono">
-                  Submitted for Manager Review ({managerReviewQueue.length}):
-                </div>
-
-                <div className="space-y-2">
-                  {managerReviewQueue.map((item) => {
-                    const isSelected = item.id === (activeReviewPost?.id || "");
-                    const isNeedsReview = item.status === "Needs Review";
-                    const isApproved = item.status === "Approved";
-                    const isBoth = item.visibility === "both";
-
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() => setSelectedReviewId(item.id)}
-                        className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                          isSelected
-                            ? "bg-slate-900 text-white border-slate-900 shadow-sm"
-                            : "bg-white text-slate-900 border-slate-200 hover:border-slate-300"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                          <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
-                            isSelected ? "bg-slate-800 text-emerald-400" : "bg-slate-100 text-slate-700"
-                          }`}>
-                            {item.channel}
-                          </span>
-
-                          <div className="flex items-center gap-1">
-                            {isBoth && (
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                                isSelected ? "bg-emerald-500 text-slate-900" : "bg-emerald-100 text-emerald-800"
-                              }`}>
-                                Both Desk
-                              </span>
-                            )}
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              isApproved
-                                ? "bg-emerald-100 text-emerald-800"
-                                : isNeedsReview
-                                  ? "bg-amber-100 text-amber-900 animate-pulse"
-                                  : "bg-slate-200 text-slate-700"
-                            }`}>
-                              {item.status}
-                            </span>
-                          </div>
-                        </div>
-
-                        <h4 className="text-xs font-bold truncate mt-1">
-                          {item.title}
-                        </h4>
-
-                        <div className={`text-[11px] mt-1.5 line-clamp-2 ${isSelected ? "text-slate-300" : "text-slate-500"}`}>
-                          "{item.content}"
-                        </div>
-
-                        <div className="flex items-center justify-between pt-2 mt-2 border-t border-slate-100/20 text-[10px]">
-                          <span className={isSelected ? "text-slate-400" : "text-slate-400"}>
-                            By {item.author || "Content Creator"}
-                          </span>
-                          <span className={isSelected ? "text-emerald-400 font-bold" : "text-emerald-700 font-bold"}>
-                            Score: {item.lastAudit?.overallScore || 90}/100
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Right Column: Active Draft Details & Manager Review Action (8 cols) */}
-              <div className="lg:col-span-8 space-y-4">
-                {activeReviewPost ? (
-                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-5">
-                    
-                    {/* Header Strip with Actions */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-mono font-bold text-slate-500 uppercase">
-                            {activeReviewPost.channel}
-                          </span>
-                          <span className="text-slate-300">•</span>
-                          <span className="text-xs font-medium text-slate-600">
-                            Author: <strong>{activeReviewPost.author}</strong>
-                          </span>
-                        </div>
-                        <h2 className="text-lg font-extrabold text-slate-900 mt-0.5">
-                          {activeReviewPost.title}
-                        </h2>
-                      </div>
-
-                      {/* Approval / Rejection Controls */}
-                      <div className="flex items-center gap-2">
-                        {activeReviewPost.status === "Approved" ? (
-                          <div className="px-3.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                            <span>Formally Certified (Rating: {activeReviewPost.reviewRating || 5}★)</span>
-                          </div>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => onRequestRevisions && onRequestRevisions(activeReviewPost.id)}
-                              className="px-3.5 py-2 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-all flex items-center gap-1.5"
-                            >
-                              <XCircle className="w-3.5 h-3.5" />
-                              <span>Request Revisions</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => setShowApprovalModal(true)}
-                              className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs transition-all flex items-center gap-1.5"
-                            >
-                              <Award className="w-4 h-4" />
-                              <span>Rate & Certify Post</span>
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Content Box */}
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-                      <div className="text-[11px] font-mono font-bold text-slate-500 uppercase">
-                        Submitted Copy:
-                      </div>
-                      <p className="text-xs text-slate-800 leading-relaxed font-sans whitespace-pre-wrap">
-                        {activeReviewPost.content}
-                      </p>
-                    </div>
-
-                    {/* Attached Banner Preview if available */}
-                    {activeReviewPost.hasImage && activeReviewPost.bannerUrl && (
-                      <div className="space-y-1.5">
-                        <div className="text-[11px] font-mono font-bold text-slate-500 uppercase">
-                          Attached Visual Asset:
-                        </div>
-                        <div className="rounded-xl overflow-hidden border border-slate-200 max-h-56 relative bg-slate-900">
-                          <img
-                            src={activeReviewPost.bannerUrl}
-                            alt="Campaign Banner"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Gemini Multimodal Compliance Audit Card */}
-                    {activeReviewPost.lastAudit ? (
-                      <div className="space-y-3 pt-2">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-xs font-bold font-mono text-slate-900 uppercase flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Shared Gemini Compliance Audit</span>
-                          </h4>
-                          <span className="text-xs font-extrabold text-emerald-700 font-mono">
-                            Readiness Score: {activeReviewPost.lastAudit.overallScore}/100
-                          </span>
-                        </div>
-
-                        <ReportCard audit={activeReviewPost.lastAudit} />
-                      </div>
-                    ) : (
-                      <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500 text-center">
-                        Audit report is loading or pending check...
-                      </div>
-                    )}
-
-                  </div>
-                ) : null}
-              </div>
-
-            </div>
-          )}
-
+          {/* Active Creator Spotlight Card */}
+          <CreatorProfileCard profile={creatorProfile} />
         </div>
       )}
 
       {/* =========================================================================
-          TAB 3: GOVERNANCE INSIGHTS & INFOGRAPHICS
+          TAB 4: GOVERNANCE INSIGHTS & INFOGRAPHICS (GUARANTEED SAFE)
          ========================================================================= */}
       {activeTab === "insights" && (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fadeIn">
           
           {/* Top Analytics 4-Card Strip */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-xs">
               <div className="text-[11px] font-mono text-slate-500 uppercase font-bold">Total Audits</div>
-              <div className="text-2xl font-extrabold text-slate-900 mt-1">{analytics.stats.totalAuditsCount}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Across {analytics.stats.activeTeamCreators} creators</div>
+              <div className="text-2xl font-extrabold text-slate-900 mt-1">{safeAnalytics.stats.totalAuditsCount}</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Across {safeAnalytics.stats.activeTeamCreators} creators</div>
             </div>
 
             <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-xs">
               <div className="text-[11px] font-mono text-slate-500 uppercase font-bold">Turnaround Time</div>
-              <div className="text-2xl font-extrabold text-emerald-600 mt-1">{analytics.stats.averageTurnaroundHours}h</div>
-              <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">↓ {analytics.stats.turnaroundReductionPercent}% vs manual review</div>
+              <div className="text-2xl font-extrabold text-emerald-600 mt-1">{safeAnalytics.stats.averageTurnaroundHours}h</div>
+              <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">↓ {safeAnalytics.stats.turnaroundReductionPercent}% vs manual review</div>
             </div>
 
             <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-xs">
               <div className="text-[11px] font-mono text-slate-500 uppercase font-bold">Leaks Prevented</div>
-              <div className="text-2xl font-extrabold text-slate-900 mt-1">{analytics.stats.offBrandLeaksPrevented}</div>
+              <div className="text-2xl font-extrabold text-slate-900 mt-1">{safeAnalytics.stats.offBrandLeaksPrevented}</div>
               <div className="text-[10px] text-slate-400 mt-0.5">Prevented pre-publication</div>
             </div>
 
             <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-xs">
               <div className="text-[11px] font-mono text-slate-500 uppercase font-bold">Brand Health Index</div>
-              <div className="text-2xl font-extrabold text-emerald-700 font-mono mt-1">{analytics.stats.companyBrandHealthScore}/100</div>
+              <div className="text-2xl font-extrabold text-emerald-700 font-mono mt-1">{safeAnalytics.stats.companyBrandHealthScore}/100</div>
               <div className="text-[10px] text-emerald-600 mt-0.5">↑ +13 pts over 30 days</div>
             </div>
           </div>
@@ -860,9 +943,6 @@ export default function ManagerView({
                 <text x="32" y="144" fill="#94A3B8" fontSize="10" textAnchor="end" fontFamily="monospace">70%</text>
 
                 {/* Area Fill */}
-                {/* Points corresponding to 81, 84, 87, 89, 92, 93, 96 */}
-                {/* X coordinates: 70, 170, 270, 370, 470, 570, 670 */}
-                {/* Y coordinates: 20 + (100 - score)*4: 81->96, 84->84, 87->72, 89->64, 92->52, 93->48, 96->36 */}
                 <polygon
                   fill="url(#brandHealthGradient)"
                   points="70,160 70,96 170,84 270,72 370,64 470,52 570,48 670,36 670,160"
@@ -957,7 +1037,7 @@ export default function ManagerView({
               </div>
 
               <div className="space-y-3">
-                {analytics.recurringViolations.map((violation, idx) => (
+                {safeAnalytics.recurringViolations.map((violation, idx) => (
                   <div key={idx} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-semibold text-slate-800 truncate max-w-[220px]">{violation.rule}</span>
@@ -1010,7 +1090,7 @@ export default function ManagerView({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {analytics.creatorLeaderboard.map((creator, idx) => (
+                  {safeAnalytics.creatorLeaderboard.map((creator, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/80 transition-all">
                       <td className="py-3 font-bold text-slate-900 flex items-center gap-2">
                         <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
@@ -1054,7 +1134,7 @@ export default function ManagerView({
       {/* =========================================================================
           MODAL 1: RATE & CERTIFY POST (MANAGER)
          ========================================================================= */}
-      {showApprovalModal && activeReviewPost && (
+      {showApprovalModal && targetDraftToRate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fadeIn">
           <div className="w-full max-w-lg bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 space-y-4">
             
@@ -1078,9 +1158,9 @@ export default function ManagerView({
 
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
               <span className="text-slate-500 font-mono text-[10px] uppercase">Draft Title: </span>
-              <strong className="text-slate-900">{activeReviewPost.title}</strong>
+              <strong className="text-slate-900">{targetDraftToRate.title}</strong>
               <div className="text-[11px] text-slate-600 mt-0.5 line-clamp-1 italic">
-                "{activeReviewPost.content}"
+                "{targetDraftToRate.content}"
               </div>
             </div>
 
@@ -1095,7 +1175,7 @@ export default function ManagerView({
                     key={star}
                     type="button"
                     onClick={() => setSelectedRating(star)}
-                    className="p-1.5 rounded-lg hover:bg-slate-100 transition-all"
+                    className="p-1.5 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
                   >
                     <Star 
                       className={`w-6 h-6 transition-all ${
@@ -1126,7 +1206,7 @@ export default function ManagerView({
                     key={tag}
                     type="button"
                     onClick={() => setSelectedAssessment(tag)}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold text-center transition-all ${
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold text-center transition-all cursor-pointer ${
                       selectedAssessment === tag
                         ? "bg-emerald-600 text-white shadow-xs font-bold"
                         : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -1161,7 +1241,7 @@ export default function ManagerView({
               <button
                 type="button"
                 onClick={handleConfirmApproval}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <Award className="w-3.5 h-3.5" />
                 <span>Confirm & Lock Certification</span>
@@ -1173,7 +1253,41 @@ export default function ManagerView({
       )}
 
       {/* =========================================================================
-          MODAL 2: INSPECT PUBLISHED DRAFT (FROM RULES BOOK)
+          MODAL 2: INSPECT CREATOR PROFILE (MANAGER VIEW)
+         ========================================================================= */}
+      {inspectingCreator && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="w-full max-w-3xl bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-emerald-600" />
+                <h3 className="font-bold text-sm text-slate-900">Creator Performance Card & Evaluation History</h3>
+              </div>
+              <button 
+                onClick={() => setInspectingCreator(null)}
+                className="text-slate-400 hover:text-slate-600 text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <CreatorProfileCard profile={inspectingCreator} />
+
+            <div className="flex justify-end pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setInspectingCreator(null)}
+                className="px-4 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg"
+              >
+                Close Inspector
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 3: INSPECT PUBLISHED DRAFT (FROM RULES BOOK)
          ========================================================================= */}
       {inspectingPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fadeIn">
@@ -1195,7 +1309,6 @@ export default function ManagerView({
               </button>
             </div>
 
-            {/* Post Metadata Card */}
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-200 text-slate-800">
@@ -1212,7 +1325,6 @@ export default function ManagerView({
               </p>
             </div>
 
-            {/* Reviewer Rating & Certification Note */}
             <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 flex items-start gap-3">
               <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
                 ★
@@ -1232,7 +1344,6 @@ export default function ManagerView({
               </div>
             </div>
 
-            {/* Audit Details */}
             {inspectingPost.lastAudit && (
               <div className="space-y-2">
                 <h4 className="text-xs font-mono font-bold text-slate-700 uppercase">

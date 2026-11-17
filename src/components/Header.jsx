@@ -6,15 +6,15 @@ import {
   ShieldCheck, 
   Key, 
   FileEdit, 
-  SlidersHorizontal,
-  Database
+  Database,
+  CheckCircle2
 } from "lucide-react";
-import { isSupabaseConfigured } from "../services/supabaseClient";
+import BrandLogo from "./BrandLogo";
 
 export const ROLES = [
   { id: "creator", label: "Content Creator", persona: "Creator Studio", badge: "Private Workspace" },
-  { id: "leader", label: "Leader", persona: "Editorial Review", badge: "Publication Gate" },
-  { id: "manager", label: "Manager", persona: "Brand Policy", badge: "Governance & Vault" }
+  { id: "leader", label: "Editorial Leader", persona: "Review Desk", badge: "Publication Gate" },
+  { id: "manager", label: "Brand Manager", persona: "Governance Vault", badge: "Policy Authority" }
 ];
 
 export default function Header({ currentRole, onRoleChange, onResetDemo, onOpenApiModal }) {
@@ -24,34 +24,9 @@ export default function Header({ currentRole, onRoleChange, onResetDemo, onOpenA
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         
-        {/* Brand Logo & Mandatory AI Disclosure Badge */}
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white font-extrabold text-sm shadow-xs relative">
-              BP
-              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white animate-pulse"></span>
-            </div>
-            <div>
-              <div className="font-extrabold text-slate-900 text-base tracking-tight leading-none">
-                BrandPulse<span className="text-emerald-600">AI</span>
-              </div>
-              <div className="text-[10px] text-slate-500 font-medium leading-tight mt-0.5">
-                Pre-Publication Brand Governance
-              </div>
-            </div>
-          </div>
-
-          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium border border-slate-200">
-            <Sparkles className="w-3 h-3 text-emerald-600" />
-            <span>Powered by <strong>Google Gemini AI</strong></span>
-          </div>
-
-          {isSupabaseConfigured && (
-            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium border border-slate-200">
-              <Database className="w-3 h-3 text-emerald-600" />
-              <span>Supabase: <strong>Live</strong></span>
-            </div>
-          )}
+        {/* Brand Logo */}
+        <div className="shrink-0">
+          <BrandLogo size="md" showTagline={true} />
         </div>
 
         {/* 1-Click Role Switcher Segmented Control */}
@@ -80,7 +55,7 @@ export default function Header({ currentRole, onRoleChange, onResetDemo, onOpenA
           })}
         </div>
 
-        {/* Active Persona Pill & Utilities */}
+        {/* Right Persona Badge & Demo Utilities */}
         <div className="flex items-center gap-2.5 shrink-0">
           <div className="hidden lg:flex flex-col text-right pr-2 border-r border-slate-200">
             <span className="text-xs font-bold text-slate-900 leading-tight">
@@ -91,7 +66,7 @@ export default function Header({ currentRole, onRoleChange, onResetDemo, onOpenA
             </span>
           </div>
 
-          {/* Engine / API Key Modal Button */}
+          {/* Engine API Key Modal Button */}
           <button
             onClick={onOpenApiModal}
             title="Configure Gemini API Key"
@@ -103,10 +78,10 @@ export default function Header({ currentRole, onRoleChange, onResetDemo, onOpenA
           {/* Reset Demo Data Button */}
           <button
             onClick={onResetDemo}
-            title="Reset to default Acme Cloud Brand Book sample data"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
+            title="Reset to Initial Acme Cloud v2.1 State"
+            className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 rounded-lg shadow-2xs flex items-center gap-1.5 transition-all"
           >
-            <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+            <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
             <span className="hidden sm:inline">Reset Demo</span>
           </button>
         </div>

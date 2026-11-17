@@ -3,6 +3,7 @@ import Header from "./components/Header";
 import CreatorView from "./components/CreatorView";
 import LeaderView from "./components/LeaderView";
 import ManagerView from "./components/ManagerView";
+import GeminiLiveConsole from "./components/GeminiLiveConsole";
 import ApiKeyModal from "./components/ApiKeyModal";
 import { 
   INITIAL_BRAND_KIT, 
@@ -21,7 +22,7 @@ import {
   saveRuleToSupabase,
   recordAuditTelemetry 
 } from "./services/supabaseClient";
-import { CheckCircle2, AlertCircle, Info, ShieldCheck, Zap } from "lucide-react";
+import { CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function App() {
   // Current active persona role: "creator" | "leader" | "manager"
@@ -186,7 +187,6 @@ export default function App() {
   const activeDraft = posts.find(p => p.id === activeDraftId) || posts[0] || INITIAL_POSTS[0];
 
   // Leader Review Desk Queue: ONLY shows posts where visibility is leader_review or both
-  // Private drafts created by creators are strictly excluded!
   const leaderReviews = posts.filter(p => 
     p.visibility === "leader_review" || 
     p.visibility === "both" ||
@@ -203,7 +203,6 @@ export default function App() {
   }, [activeDraftId]);
 
   // --- Creator Actions ---
-
   const handleUpdateDraft = (updatedDraft, saveToDb = false) => {
     setPosts(prev => prev.map(p => p.id === updatedDraft.id ? updatedDraft : p));
     if (saveToDb) {
@@ -368,7 +367,7 @@ export default function App() {
     showToast(`Post submitted to ${destLabel} Review Desk!`);
   };
 
-  // 3. Withdraw Draft from Review (Removes immediately from reviewer desks)
+  // 3. Withdraw Draft from Review
   const handleWithdrawReview = async () => {
     const updated = {
       ...activeDraft,
@@ -389,7 +388,7 @@ export default function App() {
     showToast("Post withdrawn from review. Now saved only in your private workspace.");
   };
 
-  // 4. Delete Post Completely (Removes from Supabase table & all dashboards)
+  // 4. Delete Post Completely
   const handleDeletePost = async (postId) => {
     const success = await deletePostFromSupabase(postId);
     if (success) {
@@ -542,9 +541,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-28">
       
-      {/* Top Header Bar (Persistent) */}
+      {/* Top Header Bar (Persistent & Clean) */}
       <Header
         currentRole={currentRole}
         onRoleChange={setCurrentRole}
@@ -552,34 +551,12 @@ export default function App() {
         onOpenApiModal={() => setApiModalOpen(true)}
       />
 
-      {/* Persistent Evaluation Mode Notice Banner */}
-      <div className="bg-slate-900 border-b border-emerald-900/60 text-slate-100 py-2.5 px-4 shadow-xs">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2.5">
-            <span className="px-2 py-0.5 rounded-md bg-emerald-500 text-slate-950 font-mono font-bold text-[10px] uppercase tracking-wider shrink-0">
-              Evaluation Mode
-            </span>
-            <span className="text-slate-300 leading-normal">
-              This workspace includes pre-loaded enterprise demo data (Acme Cloud Brand Book v2.1, Creator Performance Profile, Whitepapers & Telemetry). You can test <strong>1-click role switching</strong>, <strong>dual-destination review</strong> (sending to Leader & Manager simultaneously), <strong>live Gemini multimodal checks</strong>, and <strong>reviewer rating feedback</strong>.
-            </span>
-          </div>
-          <div className="flex items-center gap-3 shrink-0 text-[11px] font-mono text-emerald-400">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Supabase Cloud Synced</span>
-            </span>
-            <span className="text-slate-600">|</span>
-            <span>Gemini Multimodal Active</span>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content Workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
         {/* Toast Notification */}
         {toast && (
-          <div className="fixed top-24 right-6 z-50 animate-bounce">
+          <div className="fixed top-20 right-6 z-50 animate-bounce">
             <div className={`px-4 py-2.5 rounded-xl shadow-lg border text-xs font-semibold flex items-center gap-2 ${
               toast.type === "error" 
                 ? "bg-red-50 text-red-900 border-red-200" 
@@ -633,6 +610,7 @@ export default function App() {
             onAddRule={handleAddRule}
             analytics={analytics}
             posts={posts}
+            creatorProfile={creatorProfile}
             onApproveDraft={handleApproveDraft}
             onRequestRevisions={handleRequestRevisions}
             onAddComment={handleAddComment}
@@ -642,7 +620,7 @@ export default function App() {
       </main>
 
       {/* Persistent Minimalist Footer */}
-      <footer className="border-t border-slate-200 bg-white py-3">
+      <footer className="border-t border-slate-200 bg-white py-4 mb-4">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
           <div>
             <strong>BrandPulse AI</strong> • Powered by Google Gemini Multimodal Engine • Grounded in Acme Cloud Brand Book v2.1
@@ -652,6 +630,9 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Bottom Gemini Live & Supabase Test Console (Styled like Gemini) */}
+      <GeminiLiveConsole />
 
       {/* API Key Modal */}
       <ApiKeyModal
