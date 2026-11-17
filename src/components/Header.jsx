@@ -6,8 +6,10 @@ import {
   ShieldCheck, 
   Key, 
   FileEdit, 
-  SlidersHorizontal 
+  SlidersHorizontal,
+  Database
 } from "lucide-react";
+import { isSupabaseConfigured } from "../services/supabaseClient";
 
 export const ROLES = [
   { id: "creator", label: "Content Creator", persona: "Creator Studio", badge: "Private Workspace" },
@@ -43,6 +45,13 @@ export default function Header({ currentRole, onRoleChange, onResetDemo, onOpenA
             <Sparkles className="w-3 h-3 text-emerald-600" />
             <span>Powered by <strong>Google Gemini AI</strong></span>
           </div>
+
+          {isSupabaseConfigured && (
+            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium border border-slate-200">
+              <Database className="w-3 h-3 text-emerald-600" />
+              <span>Supabase: <strong>Live</strong></span>
+            </div>
+          )}
         </div>
 
         {/* 1-Click Role Switcher Segmented Control */}

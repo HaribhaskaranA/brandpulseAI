@@ -11,6 +11,7 @@ import {
   INITIAL_ANALYTICS 
 } from "./data/initialData";
 import { analyzeContentWithGemini } from "./services/geminiAudit";
+import { recordAuditTelemetry } from "./services/supabaseClient";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function App() {
@@ -130,6 +131,14 @@ export default function App() {
           }
         ]
       }));
+
+      // Non-blocking telemetry sync to Supabase (Zero-Knowledge, no draft copy)
+      recordAuditTelemetry({
+        overallScore: auditResult.overallScore,
+        categoriesSummary: auditResult.categories,
+        violationsCount: auditResult.negatives?.length || 0
+      }).catch(() => {});
+
       showToast(`Gemini Pre-Flight Check Complete! Score: ${auditResult.overallScore}/100`);
     } catch (err) {
       console.error(err);
