@@ -84,7 +84,7 @@ export const INITIAL_BRAND_KIT = {
   ]
 };
 
-// Content created by creators is strictly private and isolated
+// Content created by creators is strictly private and isolated by default
 export const INITIAL_CREATOR_DRAFT = {
   id: "creator-draft-001",
   title: "Q4 Launch Campaign Creative",
@@ -92,6 +92,7 @@ export const INITIAL_CREATOR_DRAFT = {
   author: "Content Creator",
   submittedAt: "2026-11-17T10:30:00Z",
   status: "Private Draft",
+  visibility: "private",
   content: "Our 100% sick cloud engine guarantees 10x faster speeds than every competitor! Acme Cloud completely demolishes old legacy databases with guaranteed 100% uptime and zero latency anywhere in the world. Switch now to the undisputed #1 platform.",
   bannerUrl: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&auto=format&fit=crop&q=80",
   bannerName: "acme-q4-cloud-hero.jpg",
@@ -104,7 +105,7 @@ export const INITIAL_CREATOR_DRAFT = {
       timestamp: "2026-11-17T10:15:00Z",
       type: "creation",
       author: "Content Creator",
-      note: "Draft created in Creator Studio (Isolated Workspace)"
+      note: "Draft created in Creator Studio (Private Workspace)"
     }
   ]
 };
@@ -118,6 +119,7 @@ export const INITIAL_LEADER_REVIEWS = [
     author: "Technical Writing Team",
     submittedAt: "2026-11-17T09:00:00Z",
     status: "Needs Review",
+    visibility: "leader_review",
     content: "Modern enterprise data platforms require verifiable fault-tolerance and predictable latency. Acme Cloud delivers 99.95% uptime SLA across 42 global regions, enabling teams to scale without operational bottlenecks. Over 10,000 enterprise partners trust our verified cloud infrastructure for mission-critical analytics.",
     bannerUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop&q=80",
     bannerName: "data-pipeline-whitepaper-cover.png",
@@ -167,6 +169,11 @@ export const INITIAL_LEADER_REVIEWS = [
       }
     ]
   }
+];
+
+export const INITIAL_POSTS = [
+  INITIAL_CREATOR_DRAFT,
+  INITIAL_LEADER_REVIEWS[0]
 ];
 
 export const INITIAL_ANALYTICS = {

@@ -11,12 +11,13 @@ import {
   AlertTriangle, 
   ShieldCheck,
   UserCheck,
-  Sparkles
+  Sparkles,
+  Inbox
 } from "lucide-react";
 import ReportCard from "./ReportCard";
 
 export default function LeaderView({ 
-  drafts, 
+  drafts = [], 
   selectedDraftId, 
   onSelectDraft, 
   onApproveDraft, 
@@ -29,7 +30,7 @@ export default function LeaderView({
 
   const handlePostComment = (e) => {
     e.preventDefault();
-    if (!commentText.trim()) return;
+    if (!commentText.trim() || !activeDraft) return;
     onAddComment(activeDraft.id, {
       author: "Editorial Leader",
       role: "Leader",
@@ -47,9 +48,24 @@ export default function LeaderView({
       case "Needs Review":
         return <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-amber-100 text-amber-800 animate-pulse">Needs Review</span>;
       default:
-        return <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-slate-100 text-slate-700">Draft</span>;
+        return <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-slate-100 text-slate-700">{status || "Draft"}</span>;
     }
   };
+
+  if (!drafts || drafts.length === 0 || !activeDraft) {
+    return (
+      <div className="p-12 text-center bg-white rounded-xl border border-slate-200 shadow-xs space-y-3 my-6">
+        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+          <Inbox className="w-6 h-6" />
+        </div>
+        <h3 className="text-base font-bold text-slate-900">Review Queue Empty</h3>
+        <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+          Content creator drafts remain strictly in private workspaces until the creator clicks <strong>"Send for Review"</strong>. 
+          When a creator submits a draft or document, it will appear here in real time.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -63,10 +79,10 @@ export default function LeaderView({
                 <UserCheck className="w-4 h-4 text-emerald-600" />
                 <span>Editorial Review Desk ({drafts.length})</span>
               </h2>
-              <p className="text-[11px] text-slate-500">Departmental publications pending sign-off</p>
+              <p className="text-[11px] text-slate-500">Submitted posts awaiting editorial approval</p>
             </div>
             <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-              Active
+              Live Synced
             </span>
           </div>
 
@@ -74,7 +90,7 @@ export default function LeaderView({
           <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 space-y-1">
             <span className="font-bold text-slate-800 block">🔒 Creator Content Privacy Protected</span>
             <p className="text-[10px] text-slate-500 leading-tight">
-              Individual creator drafts remain confidential in creator workspaces. Only designated organizational documents appear in this review desk.
+              Posts appear here <strong>only if</strong> the creator explicitly sent them for review. Private creator drafts are strictly excluded.
             </p>
           </div>
 
@@ -144,7 +160,7 @@ export default function LeaderView({
               </div>
               <h1 className="text-lg font-extrabold text-slate-900">{activeDraft.title}</h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Submitted by <strong>{activeDraft.author}</strong> on {new Date(activeDraft.submittedAt).toLocaleDateString()}
+                Submitted by <strong>{activeDraft.author}</strong> on {new Date(activeDraft.submittedAt || activeDraft.createdAt || Date.now()).toLocaleDateString()}
               </p>
             </div>
 
@@ -153,7 +169,7 @@ export default function LeaderView({
               <button
                 type="button"
                 onClick={() => onRequestRevisions(activeDraft.id)}
-                className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1.5 transition-colors"
+                className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <XCircle className="w-3.5 h-3.5 text-slate-500" />
                 <span>Request Revisions</span>
@@ -162,7 +178,7 @@ export default function LeaderView({
               <button
                 type="button"
                 onClick={() => onApproveDraft(activeDraft.id)}
-                className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs flex items-center gap-1.5 transition-colors"
+                className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>Approve for Publication</span>
@@ -178,11 +194,11 @@ export default function LeaderView({
                 <div>
                   <strong className="block text-emerald-950">Brand-Certified for Publication</strong>
                   <span className="text-[11px] text-emerald-800">
-                    Formally approved by Editorial Leader. Timestamped immutable audit trail locked.
+                    Formally approved by Editorial Leader. Timestamped immutable audit trail locked in Supabase.
                   </span>
                 </div>
               </div>
-              <span className="font-mono text-[10px] text-emerald-700 bg-white px-2 py-1 rounded border border-emerald-200">
+              <span className="font-mono text-[10px] text-emerald-700 bg-white px-2 py-1 rounded border border-emerald-200 font-bold">
                 LOCKED: PASS
               </span>
             </div>
@@ -257,7 +273,7 @@ export default function LeaderView({
             />
             <button
               type="submit"
-              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 shrink-0"
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 shrink-0 cursor-pointer"
             >
               <Send className="w-3 h-3" />
               <span>Post</span>

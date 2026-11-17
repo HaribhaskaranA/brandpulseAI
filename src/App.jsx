@@ -6,19 +6,27 @@ import ManagerView from "./components/ManagerView";
 import ApiKeyModal from "./components/ApiKeyModal";
 import { 
   INITIAL_BRAND_KIT, 
-  INITIAL_CREATOR_DRAFT, 
-  INITIAL_LEADER_REVIEWS, 
+  INITIAL_POSTS, 
   INITIAL_ANALYTICS 
 } from "./data/initialData";
 import { analyzeContentWithGemini } from "./services/geminiAudit";
-import { recordAuditTelemetry } from "./services/supabaseClient";
+import { 
+  supabase,
+  isSupabaseConfigured,
+  fetchPostsFromSupabase,
+  savePostToSupabase,
+  deletePostFromSupabase,
+  fetchRulesFromSupabase,
+  saveRuleToSupabase,
+  recordAuditTelemetry 
+} from "./services/supabaseClient";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function App() {
   // Current active persona role: "creator" | "leader" | "manager"
   const [currentRole, setCurrentRole] = useState("creator");
   
-  // Persisted state
+  // Persisted brand kit state
   const [brandKit, setBrandKit] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("brandpulse_brandkit");
@@ -29,27 +37,21 @@ export default function App() {
     return INITIAL_BRAND_KIT;
   });
 
-  // Isolated Creator Draft State (strictly private to Creator)
-  const [creatorDraft, setCreatorDraft] = useState(() => {
+  // Central Posts state (synced with Supabase `posts` table)
+  const [posts, setPosts] = useState(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("brandpulse_creator_draft");
+      const saved = localStorage.getItem("brandpulse_posts");
       if (saved) {
         try { return JSON.parse(saved); } catch (e) { /* ignore */ }
       }
     }
-    return INITIAL_CREATOR_DRAFT;
+    return INITIAL_POSTS;
   });
 
-  // Organizational Leader Review Queue (peer publications only)
-  const [leaderReviews, setLeaderReviews] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("brandpulse_leader_reviews");
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) { /* ignore */ }
-      }
-    }
-    return INITIAL_LEADER_REVIEWS;
-  });
+  const [activeDraftId, setActiveDraftId] = useState(INITIAL_POSTS[0].id);
+  const [activeLeaderDraftId, setActiveLeaderDraftId] = useState(
+    INITIAL_POSTS.find(p => p.visibility === "leader_review")?.id || INITIAL_POSTS[0].id
+  );
 
   const [analytics, setAnalytics] = useState(() => {
     if (typeof window !== "undefined") {
@@ -61,10 +63,16 @@ export default function App() {
     return INITIAL_ANALYTICS;
   });
 
-  const [activeLeaderDraftId, setActiveLeaderDraftId] = useState(INITIAL_LEADER_REVIEWS[0].id);
   const [isAuditing, setIsAuditing] = useState(false);
   const [apiModalOpen, setApiModalOpen] = useState(false);
   const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3500);
+  };
 
   // Sync state to localStorage
   useEffect(() => {
@@ -75,15 +83,9 @@ export default function App() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      localStorage.setItem("brandpulse_creator_draft", JSON.stringify(creatorDraft));
+      localStorage.setItem("brandpulse_posts", JSON.stringify(posts));
     }
-  }, [creatorDraft]);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("brandpulse_leader_reviews", JSON.stringify(leaderReviews));
-    }
-  }, [leaderReviews]);
+  }, [posts]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -91,37 +93,147 @@ export default function App() {
     }
   }, [analytics]);
 
-  const showToast = (message, type = "success") => {
-    setToast({ message, type });
-    setTimeout(() => {
-      setToast(null);
-    }, 3500);
-  };
-
-  // Run initial audit on load for creator draft if it has none
+  // Load live data from Supabase on mount
   useEffect(() => {
-    if (creatorDraft && !creatorDraft.lastAudit) {
-      analyzeContentWithGemini(creatorDraft, brandKit).then(audit => {
-        setCreatorDraft(prev => ({ ...prev, lastAudit: audit }));
+    if (isSupabaseConfigured) {
+      // 1. Fetch live posts
+      fetchPostsFromSupabase().then(dbPosts => {
+        if (dbPosts && dbPosts.length > 0) {
+          setPosts(dbPosts);
+          if (!dbPosts.find(p => p.id === activeDraftId)) {
+            setActiveDraftId(dbPosts[0].id);
+          }
+        }
       });
+
+      // 2. Fetch live brand rules
+      fetchRulesFromSupabase().then(dbRules => {
+        if (dbRules && dbRules.length > 0) {
+          setBrandKit(prev => ({
+            ...prev,
+            rules: dbRules
+          }));
+        }
+      });
+
+      // 3. Realtime subscription to Supabase posts table
+      if (supabase) {
+        const channel = supabase
+          .channel("realtime:posts")
+          .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, (payload) => {
+            if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
+              const updatedRow = payload.new;
+              const formatted = {
+                id: updatedRow.id,
+                title: updatedRow.title,
+                channel: updatedRow.channel,
+                author: updatedRow.author,
+                content: updatedRow.content,
+                bannerUrl: updatedRow.banner_url,
+                bannerName: updatedRow.banner_name,
+                hasImage: updatedRow.has_image,
+                hasImageContrastIssue: updatedRow.has_contrast_issue,
+                status: updatedRow.status,
+                visibility: updatedRow.visibility,
+                lastAudit: updatedRow.last_audit,
+                comments: updatedRow.comments || [],
+                history: updatedRow.history || [],
+                createdAt: updatedRow.created_at,
+                updatedAt: updatedRow.updated_at
+              };
+              setPosts(prev => {
+                const idx = prev.findIndex(p => p.id === formatted.id);
+                if (idx >= 0) {
+                  const copy = [...prev];
+                  copy[idx] = formatted;
+                  return copy;
+                }
+                return [formatted, ...prev];
+              });
+            } else if (payload.eventType === "DELETE") {
+              const deletedId = payload.old.id;
+              setPosts(prev => prev.filter(p => p.id !== deletedId));
+            }
+          })
+          .subscribe();
+
+        return () => {
+          supabase.removeChannel(channel);
+        };
+      }
     }
   }, []);
 
-  // --- Creator Actions (Strictly Isolated Workspace) ---
-  const handleUpdateCreatorDraft = (updatedDraft) => {
-    setCreatorDraft(updatedDraft);
+  // Currently active draft for Creator Studio
+  const activeDraft = posts.find(p => p.id === activeDraftId) || posts[0] || INITIAL_POSTS[0];
+
+  // Leader Review Desk Queue: ONLY shows posts where visibility is leader_review
+  // Private drafts created by creators are strictly excluded!
+  const leaderReviews = posts.filter(p => 
+    p.visibility === "leader_review" || 
+    (p.visibility !== "private" && (p.status === "Needs Review" || p.status === "Approved" || p.status === "Revision Requested"))
+  );
+
+  // Run initial audit on load for active draft if missing
+  useEffect(() => {
+    if (activeDraft && !activeDraft.lastAudit) {
+      analyzeContentWithGemini(activeDraft, brandKit).then(audit => {
+        handleUpdateDraft({ ...activeDraft, lastAudit: audit }, false);
+      });
+    }
+  }, [activeDraftId]);
+
+  // --- Creator Actions ---
+
+  const handleUpdateDraft = (updatedDraft, saveToDb = false) => {
+    setPosts(prev => prev.map(p => p.id === updatedDraft.id ? updatedDraft : p));
+    if (saveToDb) {
+      savePostToSupabase(updatedDraft);
+    }
+  };
+
+  const handleCreateNewPost = async () => {
+    const newPost = {
+      id: `post-${Date.now()}`,
+      title: "New Marketing Campaign",
+      channel: "Social Post",
+      author: "Content Creator",
+      content: "Type your draft here...",
+      bannerUrl: "",
+      bannerName: "",
+      hasImage: false,
+      hasImageContrastIssue: false,
+      status: "Private Draft",
+      visibility: "private",
+      lastAudit: null,
+      history: [
+        {
+          id: `hist-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          type: "creation",
+          author: "Content Creator",
+          note: "Created new private draft"
+        }
+      ],
+      comments: []
+    };
+
+    setPosts(prev => [newPost, ...prev]);
+    setActiveDraftId(newPost.id);
+    await savePostToSupabase(newPost);
+    showToast("New private draft created in Supabase table!");
   };
 
   const handleRunAudit = async () => {
     setIsAuditing(true);
     try {
       await new Promise(r => setTimeout(r, 600));
-      const auditResult = await analyzeContentWithGemini(creatorDraft, brandKit);
-      setCreatorDraft(prev => ({
-        ...prev,
+      const auditResult = await analyzeContentWithGemini(activeDraft, brandKit);
+      const updated = {
+        ...activeDraft,
         lastAudit: auditResult,
         history: [
-          ...(prev.history || []),
+          ...(activeDraft.history || []),
           {
             id: `hist-${Date.now()}`,
             timestamp: new Date().toISOString(),
@@ -130,10 +242,13 @@ export default function App() {
             note: `Pre-flight audit generated (Score: ${auditResult.overallScore}/100)`
           }
         ]
-      }));
+      };
 
-      // Non-blocking telemetry sync to Supabase (Zero-Knowledge, no draft copy)
+      handleUpdateDraft(updated, true);
+
+      // Record anonymized telemetry
       recordAuditTelemetry({
+        postId: activeDraft.id,
         overallScore: auditResult.overallScore,
         categoriesSummary: auditResult.categories,
         violationsCount: auditResult.negatives?.length || 0
@@ -151,16 +266,16 @@ export default function App() {
   const handleApplyFix = async (neg) => {
     if (!neg.flaggedText || !neg.suggestedRewrite) return;
     
-    const oldContent = creatorDraft.content || "";
+    const oldContent = activeDraft.content || "";
     const newContent = oldContent.replace(neg.flaggedText, neg.suggestedRewrite);
-    const hadContrastIssue = neg.category === "Accessibility" && creatorDraft.hasImageContrastIssue;
+    const hadContrastIssue = neg.category === "Accessibility" && activeDraft.hasImageContrastIssue;
 
     const updated = {
-      ...creatorDraft,
+      ...activeDraft,
       content: newContent,
-      hasImageContrastIssue: hadContrastIssue ? false : creatorDraft.hasImageContrastIssue,
+      hasImageContrastIssue: hadContrastIssue ? false : activeDraft.hasImageContrastIssue,
       history: [
-        ...(creatorDraft.history || []),
+        ...(activeDraft.history || []),
         {
           id: `hist-${Date.now()}`,
           timestamp: new Date().toISOString(),
@@ -171,121 +286,195 @@ export default function App() {
       ]
     };
 
-    setCreatorDraft(updated);
+    handleUpdateDraft(updated, true);
 
-    // Re-evaluate immediately
     const newAudit = await analyzeContentWithGemini(updated, brandKit);
-    setCreatorDraft({
+    handleUpdateDraft({
       ...updated,
       lastAudit: newAudit
-    });
+    }, true);
 
     showToast(`Applied fix: "${neg.suggestedRewrite}"`);
   };
 
-  const handleSaveCreatorDraft = () => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("brandpulse_creator_draft", JSON.stringify(creatorDraft));
+  // 1. Save to Private Draft (Guarantees isolation in Supabase table)
+  const handleSavePrivateDraft = async () => {
+    const updated = {
+      ...activeDraft,
+      status: "Private Draft",
+      visibility: "private",
+      history: [
+        ...(activeDraft.history || []),
+        {
+          id: `hist-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          type: "saved_private",
+          author: "Content Creator",
+          note: "Saved to private workspace (Hidden from Leader/Manager)"
+        }
+      ]
+    };
+    handleUpdateDraft(updated, true);
+    showToast("Saved to Private Draft in Supabase table (Not visible to Leader or Manager)");
+  };
+
+  // 2. Send for Review (Explicit Creator Choice)
+  const handleSendToReview = async (target = "leader") => {
+    const isManagerTarget = target === "manager";
+    const updated = {
+      ...activeDraft,
+      status: "Needs Review",
+      visibility: isManagerTarget ? "manager_review" : "leader_review",
+      history: [
+        ...(activeDraft.history || []),
+        {
+          id: `hist-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          type: "submission",
+          author: "Content Creator",
+          note: `Submitted post to ${isManagerTarget ? "Manager" : "Leader"} Review Desk`
+        }
+      ]
+    };
+    handleUpdateDraft(updated, true);
+    showToast(`Post submitted to ${isManagerTarget ? "Manager" : "Leader"} Review Desk!`);
+  };
+
+  // 3. Withdraw Draft from Review (Removes immediately from reviewer's desk)
+  const handleWithdrawReview = async () => {
+    const updated = {
+      ...activeDraft,
+      status: "Private Draft",
+      visibility: "private",
+      history: [
+        ...(activeDraft.history || []),
+        {
+          id: `hist-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          type: "withdrawn",
+          author: "Content Creator",
+          note: "Withdrawn from review desk back to private workspace"
+        }
+      ]
+    };
+    handleUpdateDraft(updated, true);
+    showToast("Post withdrawn from review. Now saved only in your private workspace.");
+  };
+
+  // 4. Delete Post Completely (Removes from Supabase table & all dashboards)
+  const handleDeletePost = async (postId) => {
+    const success = await deletePostFromSupabase(postId);
+    if (success) {
+      const remaining = posts.filter(p => p.id !== postId);
+      setPosts(remaining);
+      if (remaining.length > 0) {
+        setActiveDraftId(remaining[0].id);
+      } else {
+        handleCreateNewPost();
+      }
+      showToast("Post deleted from Supabase table and removed from all dashboards.");
+    } else {
+      showToast("Failed to delete post", "error");
     }
-    showToast("Draft saved privately to your local workspace.");
   };
 
   // --- Leader Review Desk Actions ---
-  const handleApproveDraft = (draftId) => {
-    setLeaderReviews(prev => prev.map(d => {
-      if (d.id === draftId) {
-        return {
-          ...d,
-          status: "Approved",
-          history: [
-            ...(d.history || []),
-            {
-              id: `hist-${Date.now()}`,
-              timestamp: new Date().toISOString(),
-              type: "approval",
-              author: "Editorial Leader",
-              note: "Formally approved for publication. Digital compliance certificate locked."
-            }
-          ]
-        };
-      }
-      return d;
-    }));
-    showToast("Asset formally approved for publication!");
+  const handleApproveDraft = async (draftId) => {
+    const targetPost = posts.find(p => p.id === draftId);
+    if (!targetPost) return;
+
+    const updated = {
+      ...targetPost,
+      status: "Approved",
+      history: [
+        ...(targetPost.history || []),
+        {
+          id: `hist-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          type: "approval",
+          author: "Editorial Leader",
+          note: "Formally approved for publication. Digital compliance certificate locked in Supabase."
+        }
+      ]
+    };
+    handleUpdateDraft(updated, true);
+    showToast("Asset formally approved for publication in Supabase!");
   };
 
-  const handleRequestRevisions = (draftId) => {
-    setLeaderReviews(prev => prev.map(d => {
-      if (d.id === draftId) {
-        return {
-          ...d,
-          status: "Revision Requested",
-          history: [
-            ...(d.history || []),
-            {
-              id: `hist-${Date.now()}`,
-              timestamp: new Date().toISOString(),
-              type: "revision_request",
-              author: "Editorial Leader",
-              note: "Returned with comments requesting revisions."
-            }
-          ]
-        };
-      }
-      return d;
-    }));
-    showToast("Revisions requested. Notification sent to author team.", "error");
+  const handleRequestRevisions = async (draftId) => {
+    const targetPost = posts.find(p => p.id === draftId);
+    if (!targetPost) return;
+
+    const updated = {
+      ...targetPost,
+      status: "Revision Requested",
+      history: [
+        ...(targetPost.history || []),
+        {
+          id: `hist-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          type: "revision_request",
+          author: "Editorial Leader",
+          note: "Returned with comments requesting revisions."
+        }
+      ]
+    };
+    handleUpdateDraft(updated, true);
+    showToast("Revisions requested. Notification sent to author in Supabase.", "error");
   };
 
-  const handleAddComment = (draftId, commentObj) => {
-    setLeaderReviews(prev => prev.map(d => {
-      if (d.id === draftId) {
-        return {
-          ...d,
-          comments: [
-            ...(d.comments || []),
-            {
-              id: `comm-${Date.now()}`,
-              timestamp: new Date().toISOString(),
-              ...commentObj
-            }
-          ]
-        };
-      }
-      return d;
-    }));
-    showToast("Feedback comment posted!");
+  const handleAddComment = async (draftId, commentObj) => {
+    const targetPost = posts.find(p => p.id === draftId);
+    if (!targetPost) return;
+
+    const updated = {
+      ...targetPost,
+      comments: [
+        ...(targetPost.comments || []),
+        {
+          id: `comm-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          ...commentObj
+        }
+      ]
+    };
+    handleUpdateDraft(updated, true);
+    showToast("Feedback comment posted and saved to Supabase!");
   };
 
   // --- Manager Brand Vault Actions ---
-  const handleAddRule = (ruleObj) => {
+  const handleAddRule = async (ruleObj) => {
     setBrandKit(prev => ({
       ...prev,
       rules: [ruleObj, ...prev.rules]
     }));
-    showToast(`New rule activated: "${ruleObj.title}"`);
+    await saveRuleToSupabase(ruleObj);
+    showToast(`New rule activated and saved to Supabase table: "${ruleObj.title}"`);
   };
 
   // --- Global Reset Demo Action ---
   const handleResetDemo = async () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem("brandpulse_brandkit");
-      localStorage.removeItem("brandpulse_creator_draft");
-      localStorage.removeItem("brandpulse_leader_reviews");
+      localStorage.removeItem("brandpulse_posts");
       localStorage.removeItem("brandpulse_analytics");
     }
-    const freshCreatorDraft = JSON.parse(JSON.stringify(INITIAL_CREATOR_DRAFT));
+    const freshPosts = JSON.parse(JSON.stringify(INITIAL_POSTS));
     const freshBrandKit = JSON.parse(JSON.stringify(INITIAL_BRAND_KIT));
-    const freshLeaderReviews = JSON.parse(JSON.stringify(INITIAL_LEADER_REVIEWS));
     
-    const audit1 = await analyzeContentWithGemini(freshCreatorDraft, freshBrandKit);
-    freshCreatorDraft.lastAudit = audit1;
+    const audit1 = await analyzeContentWithGemini(freshPosts[0], freshBrandKit);
+    freshPosts[0].lastAudit = audit1;
 
     setBrandKit(freshBrandKit);
-    setCreatorDraft(freshCreatorDraft);
-    setLeaderReviews(freshLeaderReviews);
+    setPosts(freshPosts);
     setAnalytics(INITIAL_ANALYTICS);
-    setActiveLeaderDraftId(freshLeaderReviews[0].id);
+    setActiveDraftId(freshPosts[0].id);
+
+    // Seed back to Supabase
+    for (const p of freshPosts) {
+      savePostToSupabase(p);
+    }
+
     showToast("Demo data reset to initial Acme Cloud Brand Book state!");
   };
 
@@ -321,19 +510,25 @@ export default function App() {
           </div>
         )}
 
-        {/* View A: Content Creator (Isolated Private Studio) */}
+        {/* View A: Content Creator Studio */}
         {currentRole === "creator" && (
           <CreatorView
-            draft={creatorDraft}
-            onUpdateDraft={handleUpdateCreatorDraft}
+            draft={activeDraft}
+            allPosts={posts}
+            onSelectPost={setActiveDraftId}
+            onCreateNewPost={handleCreateNewPost}
+            onUpdateDraft={(updated) => handleUpdateDraft(updated, false)}
             onRunAudit={handleRunAudit}
-            onSaveDraft={handleSaveCreatorDraft}
+            onSavePrivateDraft={handleSavePrivateDraft}
+            onSendToReview={handleSendToReview}
+            onWithdrawReview={handleWithdrawReview}
+            onDeletePost={handleDeletePost}
             isAuditing={isAuditing}
             onApplyFix={handleApplyFix}
           />
         )}
 
-        {/* View B: Leader Review Desk (Departmental Publications Only) */}
+        {/* View B: Leader Review Desk (Departmental & Submitted Reviews Only) */}
         {currentRole === "leader" && (
           <LeaderView
             drafts={leaderReviews}
@@ -345,7 +540,7 @@ export default function App() {
           />
         )}
 
-        {/* View C: Manager Governance & Brand Vault (Zero Access to Creator Drafts) */}
+        {/* View C: Manager Governance & Brand Vault */}
         {currentRole === "manager" && (
           <ManagerView
             brandKit={brandKit}
@@ -363,7 +558,7 @@ export default function App() {
             <strong>BrandPulse AI</strong> • Powered by Google Gemini Multimodal Engine • Grounded in Acme Cloud Brand Book v2.1
           </div>
           <div className="font-mono text-slate-400">
-            Enterprise Brand Governance Platform
+            Enterprise Brand Governance Platform (Supabase Table Synced)
           </div>
         </div>
       </footer>
