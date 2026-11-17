@@ -280,13 +280,26 @@ export default function App() {
     showToast("New private draft created in Supabase table!");
   };
 
-  const handleRunAudit = async (targetPost = null, customModel = null) => {
-    const postToAudit = targetPost || activeDraft;
-    if (!postToAudit) return;
+  const handleRunAudit = async (targetPostOrModel = null, maybeModel = null) => {
+    let postToAudit = activeDraft;
+    let modelToUse = null;
+
+    if (typeof targetPostOrModel === "string") {
+      modelToUse = targetPostOrModel;
+      postToAudit = activeDraft;
+    } else if (targetPostOrModel && typeof targetPostOrModel === "object" && targetPostOrModel.id) {
+      postToAudit = targetPostOrModel;
+      modelToUse = maybeModel;
+    } else {
+      postToAudit = activeDraft;
+      modelToUse = maybeModel;
+    }
+
+    if (!postToAudit || !postToAudit.id) return;
 
     setIsAuditing(true);
     try {
-      const preferred = customModel || 
+      const preferred = modelToUse || 
         (typeof window !== "undefined" && localStorage.getItem("brandpulse_preferred_model")) || 
         "gemini-3.1-flash-lite";
 
@@ -307,6 +320,7 @@ export default function App() {
       };
 
       handleUpdateDraft(updated, true);
+      setActiveDraftId(updated.id);
 
       // Record anonymized telemetry
       recordAuditTelemetry({
@@ -350,13 +364,15 @@ export default function App() {
 
     handleUpdateDraft(updated, true);
 
-    const newAudit = await analyzeContentWithGemini(updated, brandKit);
-    handleUpdateDraft({
+    const preferred = (typeof window !== "undefined" && localStorage.getItem("brandpulse_preferred_model")) || "gemini-3.1-flash-lite";
+    const newAudit = await analyzeContentWithGemini(updated, brandKit, preferred);
+    const finalUpdated = {
       ...updated,
       lastAudit: newAudit
-    }, true);
+    };
+    handleUpdateDraft(finalUpdated, true);
 
-    showToast(`Applied fix: "${neg.suggestedRewrite}"`);
+    showToast(`Applied fix: "${neg.suggestedRewrite}" (New Score: ${newAudit.overallScore}/100)`);
   };
 
   // 1. Save to Private Draft (Guarantees isolation in Supabase table)

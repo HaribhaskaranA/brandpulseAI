@@ -27,7 +27,7 @@ export default function ComplianceCertificateModal({ isOpen, onClose, post }) {
       author: post.author,
       status: "Formally Approved for Enterprise Publication",
       groundingKit: "Acme Cloud Brand Book v2.1",
-      complianceScore: post.lastAudit?.overallScore || 95,
+      complianceScore: post.lastAudit?.overallScore ?? 96,
       reviewerRating: post.reviewRating || 5.0,
       reviewerAssessment: post.reviewAssessment || "Brand-Certified",
       reviewerComment: post.reviewComment || "Adheres strictly to corporate SLA metrics.",
@@ -105,7 +105,7 @@ export default function ComplianceCertificateModal({ isOpen, onClose, post }) {
             <div className="p-2 bg-slate-50 rounded-lg border border-slate-200">
               <div className="text-[10px] font-mono text-slate-400 uppercase">Audit Score</div>
               <div className="text-sm font-extrabold text-emerald-700 font-mono mt-0.5">
-                {post.lastAudit?.overallScore || 96}/100
+                {post.lastAudit?.overallScore ?? 96}/100
               </div>
             </div>
 

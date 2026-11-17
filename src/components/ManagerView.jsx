@@ -416,8 +416,14 @@ export default function ManagerView({
                           <div className="text-[10px] font-mono text-slate-500 uppercase font-bold">
                             Gemini Compliance Check
                           </div>
-                          <div className="text-xl font-extrabold text-emerald-700 font-mono mt-0.5">
-                            {item.lastAudit?.overallScore || 96}/100
+                          <div className={`text-xl font-extrabold font-mono mt-0.5 ${
+                            (item.lastAudit?.overallScore ?? 0) >= 80 
+                              ? "text-emerald-700" 
+                              : (item.lastAudit?.overallScore ?? 0) >= 60 
+                                ? "text-amber-700" 
+                                : "text-red-700"
+                          }`}>
+                            {item.lastAudit?.overallScore ?? 0}/100
                           </div>
                           <p className="text-[11px] text-slate-600 line-clamp-2 mt-1">
                             {item.lastAudit?.summary || "Adheres to brand rules and SLA specifications."}
@@ -521,8 +527,14 @@ export default function ManagerView({
                       <td className="py-3 font-mono text-[11px]">
                         {draftItem.visibility === "both" ? "Both Desks" : "Manager Only"}
                       </td>
-                      <td className="py-3 font-mono font-bold text-emerald-700">
-                        {draftItem.lastAudit?.overallScore || 92}/100
+                      <td className={`py-3 font-mono font-bold ${
+                        (draftItem.lastAudit?.overallScore ?? 0) >= 80 
+                          ? "text-emerald-700" 
+                          : (draftItem.lastAudit?.overallScore ?? 0) >= 60 
+                            ? "text-amber-700" 
+                            : "text-red-700"
+                      }`}>
+                        {draftItem.lastAudit?.overallScore ?? 0}/100
                       </td>
                       <td className="py-3">
                         {draftItem.reviewRating ? (
@@ -864,8 +876,14 @@ export default function ManagerView({
                                   </span>
                                   <span className="text-slate-400">({compliantPost.reviewAssessment || "Brand-Certified"})</span>
                                 </div>
-                                <span className="text-emerald-700 font-semibold font-mono">
-                                  Score: {compliantPost.lastAudit?.overallScore || 94}/100
+                                <span className={`font-semibold font-mono ${
+                                  (compliantPost.lastAudit?.overallScore ?? 0) >= 80 
+                                    ? "text-emerald-700" 
+                                    : (compliantPost.lastAudit?.overallScore ?? 0) >= 60 
+                                      ? "text-amber-700" 
+                                      : "text-red-700"
+                                }`}>
+                                  Score: {compliantPost.lastAudit?.overallScore ?? 0}/100
                                 </span>
                               </div>
                             </div>

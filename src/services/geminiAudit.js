@@ -2,9 +2,14 @@
 // Features automatic Dual-API Key Failover (Primary -> Backup) and local intelligent rule-matching fallback
 
 export async function analyzeContentWithGemini(draftData, brandKit, customModel = null) {
+  // Normalize draftData to always be an object with valid content and properties
+  const post = typeof draftData === "string" 
+    ? { content: draftData, id: "temp-post" } 
+    : (draftData || {});
+
   // If user selected instant deterministic local engine, execute immediately
   if (customModel === "local-engine") {
-    return runLocalGroundedAudit(draftData, brandKit);
+    return runLocalGroundedAudit(post, brandKit);
   }
 
   // Retrieve primary and backup keys from environment or localStorage overrides
@@ -21,7 +26,7 @@ export async function analyzeContentWithGemini(draftData, brandKit, customModel 
   // 1. Try Primary Key first if available
   if (primaryKey && primaryKey.trim().length > 10) {
     try {
-      const liveResult = await callLiveGeminiAPI(draftData, brandKit, primaryKey.trim(), customModel);
+      const liveResult = await callLiveGeminiAPI(post, brandKit, primaryKey.trim(), customModel);
       if (liveResult && liveResult.overallScore !== undefined) {
         return {
           ...liveResult,
@@ -37,7 +42,7 @@ export async function analyzeContentWithGemini(draftData, brandKit, customModel 
   // 2. Automatic Failover: Try Backup Key if primary failed or was unavailable
   if (backupKey && backupKey.trim().length > 10) {
     try {
-      const backupResult = await callLiveGeminiAPI(draftData, brandKit, backupKey.trim(), customModel);
+      const backupResult = await callLiveGeminiAPI(post, brandKit, backupKey.trim(), customModel);
       if (backupResult && backupResult.overallScore !== undefined) {
         return {
           ...backupResult,
@@ -51,7 +56,7 @@ export async function analyzeContentWithGemini(draftData, brandKit, customModel 
   }
 
   // 3. Fallback: Fast, intelligent deterministic rule engine grounded in Manager's active rules
-  return runLocalGroundedAudit(draftData, brandKit);
+  return runLocalGroundedAudit(post, brandKit);
 }
 
 // Helper to format friendly model labels
@@ -185,20 +190,67 @@ Respond ONLY with raw valid JSON. Do not wrap in markdown code fences.`;
       parsed.timestamp = new Date().toISOString();
       parsed.modelUsed = model;
 
-      // Deterministic cross-model scoring calibration
+      // Deterministic cross-model violation unification
       const negatives = Array.isArray(parsed.negatives) ? parsed.negatives : [];
+      const content = draftData.content || "";
+      const contentLower = content.toLowerCase();
+
+      // Ground truth safety net: Ensure no active brand rule violations are overlooked
+      const activeRules = brandKit.rules.filter(r => r.active);
+      activeRules.forEach(rule => {
+        (rule.bannedTerms || []).forEach(term => {
+          if (contentLower.includes(term.toLowerCase())) {
+            const alreadyPresent = negatives.some(n => 
+              n.flaggedText && n.flaggedText.toLowerCase().includes(term.toLowerCase())
+            );
+            if (!alreadyPresent) {
+              negatives.push({
+                id: `neg-rule-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+                category: rule.category,
+                severity: rule.severity || "error",
+                flaggedText: findOriginalCasing(content, term),
+                reason: `Violates Brand Book guideline: "${rule.guidelineText}"`,
+                citation: rule.citation || "Brand Book v2.1",
+                suggestedRewrite: getRewriteForTerm(term)
+              });
+            }
+          }
+        });
+      });
+
+      // Accessibility check for image contrast
+      if (draftData.hasImage && draftData.hasImageContrastIssue) {
+        const hasA11y = negatives.some(n => n.category === "Accessibility");
+        if (!hasA11y) {
+          negatives.push({
+            id: `neg-a11y-${Date.now()}`,
+            category: "Accessibility",
+            severity: "warning",
+            flaggedText: "Subtitle text overlay in attached banner image",
+            reason: "Calculated contrast ratio is 3.1:1 on gradient background, failing WCAG 2.1 AA requirement of 4.5:1.",
+            citation: "Brand Book v2.1 §5.4, Page 29 (WCAG 2.1 Contrast)",
+            suggestedRewrite: "Increase background overlay opacity by 25% or apply dark drop shadow (#0F172A) behind text."
+          });
+        }
+      }
+
+      parsed.negatives = negatives;
+
+      // Mathematical, deterministic scoring formula across ALL models
+      // Errors deduct 18 points, warnings deduct 8 points
       const errorCount = negatives.filter(n => n.severity === "error").length;
       const warningCount = negatives.filter(n => n.severity !== "error").length;
 
-      let calibratedScore = 100 - (errorCount * 15 + warningCount * 8);
-      calibratedScore = Math.max(20, Math.min(98, calibratedScore));
-
-      // Re-align overallScore if model produced an uncalibrated outlier
-      if (typeof parsed.overallScore !== "number" || Math.abs(parsed.overallScore - calibratedScore) > 10) {
-        parsed.overallScore = calibratedScore;
+      let calibratedScore = 100 - (errorCount * 18 + warningCount * 8);
+      if (negatives.length === 0) {
+        calibratedScore = 96;
+      } else {
+        calibratedScore = Math.max(12, Math.min(96, calibratedScore));
       }
 
-      // Re-align categories to match actual violations detected
+      parsed.overallScore = calibratedScore;
+
+      // Re-align category bars to match exact violations
       const categoryNames = [
         "Tone & Voice", 
         "Terminology", 
@@ -211,8 +263,8 @@ Respond ONLY with raw valid JSON. Do not wrap in markdown code fences.`;
         const catErrors = catViolations.filter(n => n.severity === "error").length;
         const catWarnings = catViolations.filter(n => n.severity !== "error").length;
         
-        let catScore = 100 - (catErrors * 25 + catWarnings * 12);
-        catScore = Math.max(30, Math.min(100, catScore));
+        let catScore = 100 - (catErrors * 35 + catWarnings * 15);
+        catScore = Math.max(0, Math.min(100, catScore));
         const catStatus = catErrors > 0 ? "error" : catWarnings > 0 ? "warning" : "good";
         return {
           name: catName,
@@ -220,6 +272,13 @@ Respond ONLY with raw valid JSON. Do not wrap in markdown code fences.`;
           status: catStatus
         };
       });
+
+      if (!parsed.positives || parsed.positives.length === 0) {
+        parsed.positives = [
+          "Format and structure adhere to company distribution channel guidelines.",
+          "Clear messaging structure suitable for enterprise audience."
+        ];
+      }
 
       return parsed;
     } catch (err) {
@@ -337,23 +396,39 @@ export function runLocalGroundedAudit(draftData, brandKit) {
     positives.push("Visual asset respects official hex color palette (#0F172A, #059669) and logo safe margins.");
   }
 
-  // Calculate weighted overall score
-  const weights = { tone: 0.25, term: 0.20, claim: 0.30, visual: 0.15, a11y: 0.10 };
-  const overallScore = Math.round(
-    (toneScore * weights.tone) +
-    (termScore * weights.term) +
-    (claimScore * weights.claim) +
-    (visualScore * weights.visual) +
-    (a11yScore * weights.a11y)
-  );
+  // Mathematical, deterministic scoring formula strictly matching live Gemini calculation
+  const errorCount = negatives.filter(n => n.severity === "error").length;
+  const warningCount = negatives.filter(n => n.severity !== "error").length;
 
-  const categories = [
-    { name: "Tone & Voice", score: toneScore, status: toneScore >= 80 ? "good" : toneScore >= 60 ? "warning" : "error" },
-    { name: "Terminology", score: termScore, status: termScore >= 80 ? "good" : termScore >= 60 ? "warning" : "error" },
-    { name: "Fact & Claim Verification", score: claimScore, status: claimScore >= 80 ? "good" : claimScore >= 60 ? "warning" : "error" },
-    { name: "Visual Consistency", score: visualScore, status: visualScore >= 80 ? "good" : visualScore >= 60 ? "warning" : "error" },
-    { name: "Accessibility", score: a11yScore, status: a11yScore >= 80 ? "good" : a11yScore >= 60 ? "warning" : "error" }
+  let overallScore = 100 - (errorCount * 18 + warningCount * 8);
+  if (negatives.length === 0) {
+    overallScore = 96;
+  } else {
+    overallScore = Math.max(12, Math.min(96, overallScore));
+  }
+
+  const categoryNames = [
+    "Tone & Voice", 
+    "Terminology", 
+    "Fact & Claim Verification", 
+    "Visual Consistency", 
+    "Accessibility"
   ];
+
+  const categories = categoryNames.map(catName => {
+    const catViolations = negatives.filter(n => n.category === catName);
+    const catErrors = catViolations.filter(n => n.severity === "error").length;
+    const catWarnings = catViolations.filter(n => n.severity !== "error").length;
+    
+    let catScore = 100 - (catErrors * 35 + catWarnings * 15);
+    catScore = Math.max(0, Math.min(100, catScore));
+    const catStatus = catErrors > 0 ? "error" : catWarnings > 0 ? "warning" : "good";
+    return {
+      name: catName,
+      score: catScore,
+      status: catStatus
+    };
+  });
 
   let summary = "";
   if (overallScore >= 90) {

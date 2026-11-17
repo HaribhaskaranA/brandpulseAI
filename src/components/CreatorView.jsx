@@ -541,7 +541,7 @@ export default function CreatorView({
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <button
                       type="button"
-                      onClick={() => onRunAudit && onRunAudit(selectedAuditModel)}
+                      onClick={() => onRunAudit && onRunAudit(draft, selectedAuditModel)}
                       disabled={isAuditing}
                       className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
                     >

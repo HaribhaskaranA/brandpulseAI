@@ -234,7 +234,89 @@ export const INITIAL_POSTS = [
     bannerName: "acme-q4-cloud-hero.jpg",
     hasImage: true,
     hasImageContrastIssue: true,
-    lastAudit: null,
+    lastAudit: {
+      overallScore: 12,
+      summary: "Critical brand drift detected. Contains severe unverified superlatives, prohibited terminology, and aggressive colloquialisms that must be remediated prior to publication.",
+      categories: [
+        { name: "Tone & Voice", score: 30, status: "error" },
+        { name: "Terminology", score: 65, status: "warning" },
+        { name: "Fact & Claim Verification", score: 0, status: "error" },
+        { name: "Visual Consistency", score: 92, status: "good" },
+        { name: "Accessibility", score: 70, status: "warning" }
+      ],
+      positives: [
+        "Content length is suitable for multichannel social distribution.",
+        "Visual asset conforms to brand framing guidelines."
+      ],
+      negatives: [
+        {
+          id: "neg-init-1",
+          category: "Tone & Voice",
+          severity: "warning",
+          flaggedText: "100% sick",
+          reason: "Violates brand voice archetype: 'Content must sound knowledgeable, objective, and measured. Avoid sensationalized slang or aggressive conversational fillers.'",
+          citation: "Brand Book v2.1 §1.4, Page 6",
+          suggestedRewrite: "high-performance"
+        },
+        {
+          id: "neg-init-2",
+          category: "Tone & Voice",
+          severity: "warning",
+          flaggedText: "demolishes",
+          reason: "Violates brand voice archetype: 'Avoid sensationalized slang or aggressive conversational fillers.'",
+          citation: "Brand Book v2.1 §1.4, Page 6",
+          suggestedRewrite: "streamlines and modernizes"
+        },
+        {
+          id: "neg-init-3",
+          category: "Fact & Claim Verification",
+          severity: "error",
+          flaggedText: "100% uptime",
+          reason: "Unsupported superlative or metric. Never promise '100% uptime' or 'zero latency'. Official SLA is 99.95% enterprise uptime with sub-100ms API latency.",
+          citation: "Brand Book v2.1 §3.2, Page 14",
+          suggestedRewrite: "99.95% enterprise uptime SLA"
+        },
+        {
+          id: "neg-init-4",
+          category: "Fact & Claim Verification",
+          severity: "error",
+          flaggedText: "zero latency",
+          reason: "Unsupported superlative or metric. Never promise '100% uptime' or 'zero latency'. Verified fact: 'Acme Cloud SLA is 99.95% uptime across multi-region deployments with sub-100ms latency.'",
+          citation: "Brand Book v2.1 §3.2, Page 14",
+          suggestedRewrite: "sub-100ms API response latency"
+        },
+        {
+          id: "neg-init-5",
+          category: "Fact & Claim Verification",
+          severity: "error",
+          flaggedText: "10x faster than every competitor",
+          reason: "Unsupported market superiority claim without citing audited benchmark studies.",
+          citation: "Brand Book v2.1 §4.2, Page 18",
+          suggestedRewrite: "demonstrating superior throughput in audited benchmarks"
+        },
+        {
+          id: "neg-init-6",
+          category: "Fact & Claim Verification",
+          severity: "error",
+          flaggedText: "undisputed #1",
+          reason: "Unverified superlative claim prohibited by Brand Book §4.2.",
+          citation: "Brand Book v2.1 §4.2, Page 18",
+          suggestedRewrite: "industry-validated"
+        },
+        {
+          id: "neg-init-7",
+          category: "Accessibility",
+          severity: "warning",
+          flaggedText: "Subtitle text overlay in attached banner image",
+          reason: "Calculated contrast ratio is 3.1:1 on gradient background, failing WCAG 2.1 AA requirement of 4.5:1.",
+          citation: "Brand Book v2.1 §5.4, Page 29 (WCAG 2.1 Contrast)",
+          suggestedRewrite: "Increase background overlay opacity by 25% or apply dark drop shadow (#0F172A) behind text."
+        }
+      ],
+      timestamp: "2026-11-17T10:30:00Z",
+      mode: "live-gemini",
+      modelName: "Google Gemini 3.1 Flash-Lite ⚡ (Fastest)"
+    },
     history: [
       {
         id: "hist-1",
