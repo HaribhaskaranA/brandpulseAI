@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrandPulse AI — 14-Slide Presentation (Inkloom AI Challenge Round 1)</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #0d1117;
+      color: #111827;
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* 16:9 Fixed Presentation Canvas */
+    .slide-viewport {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .slide-canvas {
+      width: 1280px;
+      height: 720px;
+      max-width: 96vw;
+      max-height: 54vw;
+      background: #FAFAFA;
+      border-radius: 8px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 38px 48px 24px 48px;
+      box-sizing: border-box;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    /* Print to PDF */
+    @media print {
+      body {
+        background: #FAFAFA !important;
+        color: #111827 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .slide-viewport {
+        width: 100% !important;
+        height: auto !important;
+        display: block !important;
+      }
+      .slide-canvas {
+        width: 100% !important;
+        height: 100vh !important;
+        max-width: none !important;
+        max-height: none !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 40px !important;
+      }
+      .slide-item {
+        display: flex !important;
+        opacity: 1 !important;
+      }
+    }
+
+    .slide-item {
+      display: none;
+      height: 100%;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .slide-item.active {
+      display: flex;
+    }
+
+    /* Minimal UI scrollbars */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<div class="slide-viewport">
+  <div class="slide-canvas" id="slideCanvas">
+
+    <!-- ==================== SLIDE 1: MINIMAL COVER PAGE ==================== -->
+    <div class="slide-item active" data-slide="1">
+      <div></div>
+      <!-- Pure Typographic Block (Left-aligned, generous whitespace, strictly no illustrations/badges) -->
+      <div class="max-w-3xl space-y-4 my-auto">
+        <div class="text-xs font-mono font-bold tracking-widest text-emerald-700 uppercase">
+          Inkloom AI Brand-Governance Challenge  •  Round 1: The Plan
+        </div>
+        
+        <h1 class="text-5xl font-extrabold text-slate-900 tracking-tight leading-none">
+          BrandPulse AI
+        </h1>
+        
+        <p class="text-base text-slate-600 font-normal pt-1">
+          Pre-Publication Brand Governance Platform Powered by Google Gemini
+        </p>
+
+        <div class="w-16 h-px bg-slate-300 my-6"></div>
+
+        <div class="space-y-1.5 text-xs text-slate-600">
+          <div class="font-bold text-slate-900 text-sm">Team Name: Green Coders</div>
+          <div>
+            <span class="font-semibold text-slate-800">Team Members:</span> 
+            Haribhaskaran A (Team Lead), Antonio Danish B, Deepadharshan R, Harish N, Barath Kumar K, Jaswanth Kannan K
+          </div>
+          <div>
+            <span class="font-semibold text-slate-800">College:</span> 
+            Sri Krishna College of Engineering and Technology
+          </div>
+          <div>
+            <span class="font-semibold text-slate-800">Location:</span> 
+            Coimbatore, Tamil Nadu
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide Indicator -->
+      <div class="pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs text-slate-400 font-mono">
+        <div>BrandPulse AI  •  Team Green Coders</div>
+        <div>01 / 14</div>
+      </div>
+    </div>
+
+
+    <!-- ==================== SLIDE 2: 01 — UNDERSTANDING PROBLEM STATEMENT ==================== -->
+    <div class="slide-item" data-slide="2">
+      <!-- Header -->
+      <div class="pb-3 border-b border-slate-200">
+        <span class="text-xs font-bold font-mono tracking-wider text-emerald-700 uppercase">01 — Understanding of the Problem Statement</span>
+        <h2 class="text-2xl font-extrabold text-slate-900 mt-0.5">Scaling Content Without Governance Breaks Brand Trust</h2>
+      </div>
+
+      <!-- Content -->
+      <div class="my-auto py-2 space-y-4">
+        <p class="text-xs text-slate-600 leading-relaxed max-w-4xl">
+          Growing organizations publish daily across internal teams, external agencies, and generative AI tools—leading to rapid brand drift before anyone notices. Decentralized creation outpaces human review bandwidth, creating three severe failure modes:
+        </p>
+
+        <!-- 3 Failure Mode Cards -->
+        <div class="grid grid-cols-3 gap-4">
+          <!-- Card 1 -->
+          <div class="p-4 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+            <div>
+              <div class="text-[10px] font-mono font-bold text-red-600 uppercase mb-1">Failure Mode 01</div>
+              <h3 class="text-sm font-bold text-slate-900 mb-1.5">Off-Tone Messaging</h3>
+              <p class="text-xs text-slate-600 leading-relaxed mb-3">
+                Decentralized writers default to casual colloquialisms or aggressive hyper-promotional jargon that violates brand persona.
+              </p>
+            </div>
+            <div class="p-2.5 rounded bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-700">
+              <span class="text-red-600 font-bold">- "Our sick new AI crushes competitors!"</span>
+              <div class="text-slate-400 text-[10px] mt-1 font-sans">Flagged: Unprofessional tone; contradicts calm, authoritative guideline.</div>
+            </div>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="p-4 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+            <div>
+              <div class="text-[10px] font-mono font-bold text-amber-600 uppercase mb-1">Failure Mode 02</div>
+              <h3 class="text-sm font-bold text-slate-900 mb-1.5">Unsupported Claims</h3>
+              <p class="text-xs text-slate-600 leading-relaxed mb-3">
+                Drafts incorporate unverified superlatives, outdated pricing, or unbacked performance stats creating immediate legal risk.
+              </p>
+            </div>
+            <div class="p-2.5 rounded bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-700">
+              <span class="text-amber-600 font-bold">- "Guaranteed #1 fastest app with 100% uptime."</span>
+              <div class="text-slate-400 text-[10px] mt-1 font-sans">Flagged: Unsupported superlative; contradicts SLA Fact Sheet v1.4.</div>
+            </div>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="p-4 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+            <div>
+              <div class="text-[10px] font-mono font-bold text-slate-700 uppercase mb-1">Failure Mode 03</div>
+              <h3 class="text-sm font-bold text-slate-900 mb-1.5">Visual/Accessibility Mismatches</h3>
+              <p class="text-xs text-slate-600 leading-relaxed mb-3">
+                Marketing graphics apply off-palette hex colors, unapproved logo clear-space, or illegible text contrast ratios.
+              </p>
+            </div>
+            <div class="p-2.5 rounded bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-700">
+              <span class="text-slate-900 font-bold">- Contrast Ratio 2.9:1 (Fails AA standard)</span>
+              <div class="text-slate-400 text-[10px] mt-1 font-sans">Flagged: Uses unapproved accent #FF0055 on light background.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- What We Solve Callout -->
+        <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-950 flex items-center justify-between">
+          <span><strong>What We Solve:</strong> Replacing slow, subjective 48–72 hour manual reviews with an automated, pre-publication brand copilot grounded in official company guidelines.</span>
+          <span class="font-mono text-emerald-700 font-semibold text-[11px]">Sub-5s Pre-Flight</span>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400 font-mono">
+        <div>Problem Context & Failure Modes</div>
+        <div>02 / 14</div>
+      </div>
+    </div>
+
+
+    <!-- ==================== SLIDE 3: 02 — USERS AFFECTED & RESEARCH ==================== -->
+    <div class="slide-item" data-slide="3">
+      <!-- Header -->
+      <div class="pb-3 border-b border-slate-200">
+        <span class="text-xs font-bold font-mono tracking-wider text-emerald-700 uppercase">02 — Users Affected by the Problem & Research Validation</span>
+        <h2 class="text-2xl font-extrabold text-slate-900 mt-0.5">Three Organizational Roles Impacted by Brand Drift</h2>
+      </div>
+
+      <!-- 3-Column Roles -->
+      <div class="my-auto py-2 space-y-4">
+        <div class="grid grid-cols-3 gap-4">
+          <!-- Role 1 -->
+          <div class="p-4 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+            <div>
+              <div class="text-[10px] font-mono font-bold text-slate-500 uppercase">Governance Authority</div>
+              <h3 class="text-base font-bold text-slate-900 mb-2">Manager</h3>
+              <ul class="text-xs text-slate-600 space-y-2">
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-600 font-bold">•</span>
+                  <span>Struggles to enforce updated brand books and fact sheets across distributed agencies and teams.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-600 font-bold">•</span>
+                  <span>Lacks visibility into recurring guideline violations and ambiguous rule interpretations.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-600 font-bold">•</span>
+                  <span>Needs high-level compliance analytics to spot friction and proactively refine rules.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="mt-4 pt-2 border-t border-slate-100 text-[10px] font-mono text-slate-400">
+              Owns: Master Guidelines & Analytics
+            </div>
+          </div>
+
+          <!-- Role 2 -->
+          <div class="p-4 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+            <div>
+              <div class="text-[10px] font-mono font-bold text-slate-500 uppercase">Team Reviewer</div>
+              <h3 class="text-base font-bold text-slate-900 mb-2">Leader</h3>
+              <ul class="text-xs text-slate-600 space-y-2">
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-600 font-bold">•</span>
+                  <span>Spends hours manually cross-checking team drafts against fragmented PDFs across emails and Slack.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-600 font-bold">•</span>
+                  <span>Lacks an objective, synchronized rubric to justify edit requests to creators.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-600 font-bold">•</span>
+                  <span>Demands a single dashboard to inspect pre-flight audits and record formal sign-offs.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="mt-4 pt-2 border-t border-slate-100 text-[10px] font-mono text-slate-400">
+              Owns: Review Flow & Formal Sign-Off
+            </div>
+          </div>
+
+          <!-- Role 3 -->
+          <div class="p-4 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+            <div>
+              <div class="text-[10px] font-mono font-bold text-slate-500 uppercase">Drafter & Builder</div>
+              <h3 class="text-base font-bold text-slate-900 mb-2">Content Creator</h3>
+              <ul class="text-xs text-slate-600 space-y-2">
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-600 font-bold">•</span>
+                  <span>Faces unclear, buried guidelines and frustrating late-stage rejections.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-600 font-bold">•</span>
+                  <span>Wastes time waiting 2–3 days for editorial reviews on minor campaign assets.</span>
+                </li>
+                <li class="flex items-start gap-1.5">
+                  <span class="text-emerald-600 font-bold">•</span>
+                  <span>Wants instant, explainable pre-flight feedback with intent-preserving rewrite suggestions.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="mt-4 pt-2 border-t border-slate-100 text-[10px] font-mono text-slate-400">
+              Owns: Multi-Format Content Drafting
+            </div>
+          </div>
+        </div>
+
+        <!-- Evidence Box -->
+        <div class="p-3 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 flex items-center justify-between">
+          <div>
+            <span class="font-bold text-slate-900 font-mono text-emerald-700 uppercase">RESEARCH EVIDENCE CALLOUT (N = 60+):</span>
+            <span class="ml-1 text-slate-600">Surveys across college media clubs, student startups, and freelance marketers revealed that <strong>over 70% of revision cycles</strong> stem from ambiguous rules and delayed feedback loops.</span>
+          </div>
+          <span class="text-slate-400 font-mono text-[10px] shrink-0 pl-3">Collegiate & Agency Survey</span>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400 font-mono">
+        <div>Target Roles & Empirical Research</div>
+        <div>03 / 14</div>
+      </div>
+    </div>
+
+
+    <!-- ==================== SLIDE 4: 03 — PROPOSED SOLUTION ==================== -->
+    <div class="slide-item" data-slide="4">
+      <!-- Header -->
+      <div class="pb-3 border-b border-slate-200">
+        <span class="text-xs font-bold font-mono tracking-wider text-emerald-700 uppercase">03 — Proposed Solution & Value Proposition</span>
+        <h2 class="text-2xl font-extrabold text-slate-900 mt-0.5">An Explainable Brand Copilot—Not a Rigid Blocker</h2>
+      </div>
+
+      <!-- Content -->
+      <div class="my-auto py-2 space-y-4">
+        <p class="text-xs text-slate-600 leading-relaxed">
+          BrandPulse AI (powered by Google Gemini) audits content against Manager-approved rules before publication and generates a transparent <strong>Brand Evaluation Report</strong> shared across the Content Creator, Leader, and Manager.
+        </p>
+
+        <!-- 3 Pillars Grid -->
+        <div class="grid grid-cols-3 gap-4">
+          <!-- Pillar 1 -->
+          <div class="p-4 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+            <div>
+              <div class="text-[10px] font-mono font-bold text-emerald-700 uppercase mb-1">Pillar 01</div>
+              <h3 class="text-sm font-bold text-slate-900 mb-1">Overall Compliance Guide</h3>
+              <p class="text-xs text-slate-600 leading-relaxed mb-3">
+                Actionable readiness score (0–100%) and clear summary for rapid go/no-go publishing decisions.
+              </p>
+            </div>
+            <div class="p-2.5 bg-slate-50 rounded border border-slate-200 text-xs font-mono">
+              <div class="flex justify-between font-bold text-slate-800 mb-1">
+                <span>Readiness Score</span>
+                <span class="text-emerald-700">86 / 100</span>
+              </div>
+              <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-600 rounded-full" style="width: 86%;"></div>
+              </div>
+              <div class="text-[10px] text-slate-400 mt-1">Status: Ready with 2 minor fixes</div>
+            </div>
+          </div>
+
+          <!-- Pillar 2 -->
+          <div class="p-4 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+            <div>
+              <div class="text-[10px] font-mono font-bold text-emerald-700 uppercase mb-1">Pillar 02</div>
+              <h3 class="text-sm font-bold text-slate-900 mb-1">Positives (Strengths)</h3>
+              <p class="text-xs text-slate-600 leading-relaxed mb-3">
+                Highlights copy, terminology, and visuals that already meet brand standards, reinforcing institutional best practices.
+              </p>
+            </div>
+            <div class="p-2.5 bg-slate-50 rounded border border-slate-200 text-[11px] text-slate-700 space-y-1">
+              <div class="text-emerald-700 font-semibold">✓ Confident & Empathetic persona matched</div>
+              <div class="text-emerald-700 font-semibold">✓ Approved palette #059669 correctly applied</div>
+              <div class="text-[10px] text-slate-400 font-mono">Builds creator confidence</div>
+            </div>
+          </div>
+
+          <!-- Pillar 3 -->
+          <div class="p-4 rounded-lg bg-white border border-slate-200 flex flex-col justify-between">
+            <div>
+              <div class="text-[10px] font-mono font-bold text-emerald-700 uppercase mb-1">Pillar 03</div>
+              <h3 class="text-sm font-bold text-slate-900 mb-1">Negatives & Explainable Fixes</h3>
+              <p class="text-xs text-slate-600 leading-relaxed mb-3">
+                Explains why an issue was flagged, cites exact rule and page from guidelines, and offers intent-preserving rewrites.
+              </p>
+            </div>
+            <div class="p-2.5 bg-slate-50 rounded border border-slate-200 text-[11px] space-y-0.5">
+              <div class="font-mono text-rose-600 font-bold text-[10px]">Citation: Brand Book §4.2 (p. 18)</div>
+              <div class="text-slate-800 line-through text-[11px]">"The undisputed #1 app in Asia"</div>
+              <div class="text-emerald-700 font-medium text-[11px]">Rewrite: "A leading verified platform in Asia"</div>
+              <div class="text-[9px] text-slate-400">1-Click Apply • Human retains control</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 bg-white border border-slate-200 rounded-lg text-xs text-slate-600 flex items-center justify-between">
+          <span><strong>Human Agency Principle:</strong> The AI acts strictly as an advisory copilot; suggestions are never auto-applied and human judgment remains absolute.</span>
+          <span class="font-mono text-emerald-700 font-semibold text-[11px]">No Auto-Overriding</span>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400 font-mono">
+        <div>Solution Architecture & 3 Report Pillars</div>
+        <div>04 / 14</div>
+      </div>
+    </div>
+
+
+    <!-- ==================== SLIDE 5: 04 — END-TO-END WORKFLOW ==================== -->
+    <div class="slide-item" data-slide="5">
+      <!-- Header -->
+      <div class="pb-3 border-b border-slate-200">
+        <span class="text-xs font-bold font-mono tracking-wider text-emerald-700 uppercase">04 — Complete End-to-End Product Workflow</span>
+        <h2 class="text-2xl font-extrabold text-slate-900 mt-0.5">Five-Stage Role-Based Review & Approval Workflow</h2>
+      </div>
+
+      <!-- Horizontal 5-Step Diagram -->
+      <div class="my-auto py-3 space-y-5">
+        <div class="grid grid-cols-5 gap-3">
+          <!-- Step 1 -->
+          <div class="p-3.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between h-56">
+            <div>
+              <div class="w-6 h-6 rounded bg-slate-900 text-white font-mono text-xs flex items-center justify-center font-bold mb-2">1</div>
+              <span class="text-[10px] font-mono font-bold text-slate-500 uppercase">Manager</span>
+              <h3 class="text-sm font-bold text-slate-900 mt-0.5 mb-1.5">Rule Setup</h3>
+              <p class="text-[11px] text-slate-600 leading-relaxed">
+                Manager uploads brand guidelines (PDF), verified facts, terminology lists, and approved hex palettes.
+              </p>
+            </div>
+            <div class="pt-2 border-t border-slate-100 text-[10px] font-mono text-emerald-700 font-semibold">
+              Indexed in pgvector
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="p-3.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between h-56">
+            <div>
+              <div class="w-6 h-6 rounded bg-slate-900 text-white font-mono text-xs flex items-center justify-center font-bold mb-2">2</div>
+              <span class="text-[10px] font-mono font-bold text-slate-500 uppercase">Content Creator</span>
+              <h3 class="text-sm font-bold text-slate-900 mt-0.5 mb-1.5">Multi-Format Drafting</h3>
+              <p class="text-[11px] text-slate-600 leading-relaxed">
+                Creator inputs copy, attaches .docx proposals, or uploads marketing social banners in the Web Studio.
+              </p>
+            </div>
+            <div class="pt-2 border-t border-slate-100 text-[10px] font-mono text-slate-500 font-semibold">
+              Text, .docx & Creatives
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="p-3.5 rounded-lg bg-emerald-50 border border-emerald-300 flex flex-col justify-between h-56">
+            <div>
+              <div class="w-6 h-6 rounded bg-emerald-700 text-white font-mono text-xs flex items-center justify-center font-bold mb-2">3</div>
+              <span class="text-[10px] font-mono font-bold text-emerald-700 uppercase">Google Gemini</span>
+              <h3 class="text-sm font-bold text-slate-900 mt-0.5 mb-1.5">Pre-Flight AI Audit</h3>
+              <p class="text-[11px] text-slate-700 leading-relaxed">
+                System evaluates 5 categories, generating color-coded health graphs and exact guideline page citations.
+              </p>
+            </div>
+            <div class="pt-2 border-t border-emerald-200 text-[10px] font-mono text-emerald-700 font-bold">
+              Sub-5s RAG Evaluation
+            </div>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="p-3.5 rounded-lg bg-white border border-slate-200 flex flex-col justify-between h-56">
+            <div>
+              <div class="w-6 h-6 rounded bg-slate-900 text-white font-mono text-xs flex items-center justify-center font-bold mb-2">4</div>
+              <span class="text-[10px] font-mono font-bold text-slate-500 uppercase">Creator & Leader</span>
+              <h3 class="text-sm font-bold text-slate-900 mt-0.5 mb-1.5">Collaborative Review</h3>
+              <p class="text-[11px] text-slate-600 leading-relaxed">
+                Creator applies 1-click fixes; Leader & Manager inspect the shared report, add comments, and track diffs.
+              </p>
+            </div>
+            <div class="pt-2 border-t border-slate-100 text-[10px] font-mono text-slate-500 font-semibold">
+              Shared Audit Workspace
+            </div>
+          </div>
+
+          <!-- Step 5 -->
+          <div class="p-3.5 rounded-lg bg-slate-900 text-white border border-slate-800 flex flex-col justify-between h-56">
+            <div>
+              <div class="w-6 h-6 rounded bg-emerald-500 text-slate-900 font-mono text-xs flex items-center justify-center font-bold mb-2">5</div>
+              <span class="text-[10px] font-mono font-bold text-emerald-400 uppercase">Leader / Manager</span>
+              <h3 class="text-sm font-bold text-white mt-0.5 mb-1.5">Formal Sign-Off</h3>
+              <p class="text-[11px] text-slate-300 leading-relaxed">
+                Authorized reviewer approves the asset for publication, logging a timestamped, brand-certified audit trail.
+              </p>
+            </div>
+            <div class="pt-2 border-t border-slate-800 text-[10px] font-mono text-emerald-400 font-bold">
+              Brand-Certified Asset
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 bg-white border border-slate-200 rounded-lg text-xs text-slate-600 flex items-center justify-between">
+          <span><strong>Accountability Loop:</strong> Every stage maintains immutable audit provenance; revisions, human overrides, and sign-offs are logged.</span>
+          <span class="font-mono text-slate-500 text-[11px]">Turnaround: &lt; 15 mins</span>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400 font-mono">
+        <div>5-Stage Product Lifecycle</div>
+        <div>05 / 14</div>
+      </div>
+    </div>
+
+
+    <!-- ==================== SLIDE 6: 05 — MAIN FEATURES & GRAPHS ==================== -->
+    <div class="slide-item" data-slide="6">
+      <!-- Header -->
+      <div class="pb-3 border-b border-slate-200">
+        <span class="text-xs font-bold font-mono tracking-wider text-emerald-700 uppercase">05 — Main Features & Visual Content Health Graphs</span>
+        <h2 class="text-2xl font-extrabold text-slate-900 mt-0.5">Multi-Format Auditing, Color-Coded Graphs & Governance Insights</h2>
+      </div>
+
+      <!-- Content Split -->
+      <div class="my-auto py-2 grid grid-cols-12 gap-5 items-center">
+        <!-- Left Column: Core Features (6 cols) -->
+        <div class="col-span-6 space-y-3">
+          <div class="p-3 bg-white border border-slate-200 rounded-lg">
+            <div class="text-xs font-bold text-slate-900">5 Specific Audit Categories</div>
+            <div class="text-[11px] text-slate-600 mt-0.5">Tone & Voice (personality match), Terminology (banned/approved terms), Fact & Claim Verification, Visuals (logo clear space/hex colors), and Accessibility (WCAG text contrast).</div>
+          </div>
+
+          <div class="p-3 bg-white border border-slate-200 rounded-lg">
+            <div class="text-xs font-bold text-slate-900">Native Multi-Format Support</div>
+            <div class="text-[11px] text-slate-600 mt-0.5">Single ingestion pipeline handling raw plain text, rich blog markdown, .docx documents (with tracked changes export), and social image banners.</div>
+          </div>
+
+          <div class="p-3 bg-white border border-slate-200 rounded-lg">
+            <div class="text-xs font-bold text-slate-900">Manager Governance Insights</div>
+            <div class="text-[11px] text-slate-600 mt-0.5">Tracks repeated mistakes across teams (e.g., 38% flagged for outdated product naming), alerting Managers to ambiguous guidelines for proactive rule updates.</div>
+          </div>
+
+          <div class="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-[11px] text-emerald-950 flex items-center justify-between">
+            <span><strong>Mandatory AI Disclosure:</strong> Explicit "Evaluated by Google Gemini AI" badge on every report.</span>
+            <span class="font-mono text-emerald-700 font-bold">100% Transparent</span>
+          </div>
+        </div>
+
+        <!-- Right Column: Visual Chart Mockup (6 cols) -->
+        <div class="col-span-6 p-4 bg-white rounded-lg border border-slate-200 space-y-3">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100 text-xs">
+            <span class="font-bold text-slate-900 font-mono">CONTENT HEALTH AUDIT: #Q4-PROMO-V2</span>
+            <span class="px-2 py-0.5 bg-slate-100 text-slate-600 font-mono text-[10px] rounded">
+              Evaluated by Google Gemini AI
+            </span>
+          </div>
+
+          <div class="space-y-2.5">
+            <div>
+              <div class="flex justify-between text-xs font-medium mb-1">
+                <span class="text-slate-700">Tone & Voice</span>
+                <span class="text-emerald-700 font-mono font-bold">92% • Good</span>
+              </div>
+              <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-600 rounded-full" style="width: 92%;"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-medium mb-1">
+                <span class="text-slate-700">Terminology</span>
+                <span class="text-emerald-700 font-mono font-bold">88% • Good</span>
+              </div>
+              <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-600 rounded-full" style="width: 88%;"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-medium mb-1">
+                <span class="text-slate-700">Accessibility (WCAG 2.1)</span>
+                <span class="text-amber-600 font-mono font-bold">65% • Needs Fix</span>
+              </div>
+              <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full bg-amber-500 rounded-full" style="width: 65%;"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-medium mb-1">
+                <span class="text-slate-700">Fact & Claim Verification</span>
+                <span class="text-red-600 font-mono font-bold">40% • Flagged with Citation</span>
+              </div>
+              <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full bg-red-600 rounded-full" style="width: 40%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Citation Callout -->
+          <div class="p-2.5 bg-slate-50 border border-slate-200 rounded text-[11px] text-slate-700">
+            <div class="font-mono font-bold text-red-600 text-[10px]">CITATION [Brand Book §3.4, Page 22]:</div>
+            <p class="mt-0.5 text-slate-600">Claim <em>"10x faster response time than all peers"</em> is unsupported in verified fact sheet.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400 font-mono">
+        <div>Features, Bar Charts & Rule Citations</div>
+        <div>06 / 14</div>
+      </div>
+    </div>
+
+
+    <!-- ==================== SLIDE 7: 06 — TECHNOLOGY STACK & ARCHITECTURE ==================== -->
+    <div class="slide-item" data-slide="7">
+      <!-- Header -->
+      <div class="pb-2 border-b border-slate-200">
+        <span class="text-xs font-bold font-mono tracking-wider text-emerald-700 uppercase">06 — Technology Stack & System Architecture</span>
+        <h2 class="text-2xl font-extrabold text-slate-900 mt-0.5">Grounded Multimodal Architecture Powered by Google Gemini</h2>
+      </div>
+
+      <!-- Embedded Custom Architecture Diagram -->
+      <div class="my-auto py-1 space-y-2">
+        <div class="w-full rounded-lg border border-slate-200 overflow-hidden bg-white shadow-xs flex items-center justify-center p-1">
+          <img src="architecture_diagram.jpg" alt="BrandPulse AI System Architecture Diagram" class="max-h-80 w-auto object-contain rounded">
+        </div>
+
+        <!-- 3 Architecture Rationale Cards -->
+        <div class="grid grid-cols-3 gap-3">
+          <div class="p-2.5 bg-white border border-slate-200 rounded">
+            <div class="text-[10px] font-mono font-bold text-emerald-700 uppercase">Frontend</div>
+            <div class="text-xs font-bold text-slate-900">React (Vite) + Tailwind + Recharts</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Deployed on Vercel Global Edge Network; sub-100ms UI responsiveness for multi-role workflows.</div>
+          </div>
+          <div class="p-2.5 bg-white border border-slate-200 rounded">
+            <div class="text-[10px] font-mono font-bold text-emerald-700 uppercase">Backend</div>
+            <div class="text-xs font-bold text-slate-900">FastAPI + pypdf + docx + Pillow</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Async Python microservice; extracts structured text and deterministically computes WCAG contrast.</div>
+          </div>
+          <div class="p-2.5 bg-white border border-slate-200 rounded">
+            <div class="text-[10px] font-mono font-bold text-emerald-700 uppercase">AI & Database</div>
+            <div class="text-xs font-bold text-slate-900">Google Gemini API + Supabase</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Gemini multimodal auditing grounded in Supabase pgvector; strict Row-Level Security isolation.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-2 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400 font-mono">
+        <div>System Flow: Brand Vault & Studio → FastAPI → Supabase/Gemini → Shared Report</div>
+        <div>07 / 14</div>
+      </div>
+    </div>
+
+
+    <!-- ==================== SLIDE 8: 07 — TECHNICAL CHALLENGE & SOLUTION ==================== -->
+    <div class="slide-item" data-slide="8">
+      <!-- Header -->
+      <div class="pb-3 border-b border-slate-200">
+        <span class="text-xs font-bold font-mono tracking-wider text-emerald-700 uppercase">07 — Key Technical Challenge & Architectural Solution</span>
+        <h2 class="text-2xl font-extrabold text-slate-900 mt-0.5">Solving AI Hallucinations & Multi-Format Precision</h2>
+      </div>
+
+      <!-- Two-Column Comparison -->
+      <div class="my-auto py-2 grid grid-cols-2 gap-5">
+        <!-- Left: The Challenge -->
+        <div class="p-4 bg-white border border-slate-200 rounded-lg flex flex-col justify-between">
+          <div>
+            <div class="text-[10px] font-mono font-bold text-red-600 uppercase mb-1">The Core Challenge</div>
+            <h3 class="text-base font-bold text-slate-900 mb-2">Preventing Hallucinations & Mixed-Format Fragility</h3>
+            
+            <ul class="text-xs text-slate-600 space-y-2.5">
+              <li class="flex items-start gap-1.5">
+                <span class="text-red-500 font-bold">•</span>
+                <span><strong>Rule Hallucinations:</strong> Off-the-shelf LLMs invent non-existent brand rules or guess tone preferences without authoritative grounding.</span>
+              </li>
+              <li class="flex items-start gap-1.5">
+                <span class="text-red-500 font-bold">•</span>
+                <span><strong>Multi-Format Heterogeneity:</strong> Brand assets arrive in plain copy, formatted .docx proposals, and high-res image banners.</span>
+              </li>
+              <li class="flex items-start gap-1.5">
+                <span class="text-red-500 font-bold">•</span>
+                <span><strong>Mathematical Fragility:</strong> Pure language models cannot accurately calculate exact pixel-level WCAG contrast ratios or logo clear-space.</span>
+              </li>
+            </ul>
+          </div>
+          <div class="mt-4 pt-2 border-t border-slate-100 text-[10px] font-mono text-slate-400">
+            Uncontrolled LLMs cause creator disputes
+          </div>
+        </div>
+
+        <!-- Right: Our Solution -->
+        <div class="p-4 bg-white border border-emerald-300 rounded-lg flex flex-col justify-between shadow-xs">
+          <div>
+            <div class="text-[10px] font-mono font-bold text-emerald-700 uppercase mb-1">Our Architectural Solution</div>
+            <h3 class="text-base font-bold text-slate-900 mb-2">Strict Clause-Level RAG + Hybrid Vision Math</h3>
+            
+            <ul class="text-xs text-slate-600 space-y-2.5">
+              <li class="flex items-start gap-1.5">
+                <span class="text-emerald-600 font-bold">•</span>
+                <span><strong>Strict Clause-Level RAG:</strong> Brand books are chunked with metadata (Document Title, Section, Page Number) in pgvector. Gemini is constrained to cite retrieved chunks verbatim or output "No Rule Found."</span>
+              </li>
+              <li class="flex items-start gap-1.5">
+                <span class="text-emerald-600 font-bold">•</span>
+                <span><strong>Hybrid Deterministic + Multimodal Pipeline:</strong> Python (Pillow) computes exact WCAG contrast math and hex clusters, while Gemini Vision evaluates layout context and logo integrity.</span>
+              </li>
+              <li class="flex items-start gap-1.5">
+                <span class="text-emerald-600 font-bold">•</span>
+                <span><strong>Explainable Evidence Linking:</strong> Every negative flag surfaces the exact rule quote and suggested rewrite without auto-overriding human authority.</span>
+              </li>
+            </ul>
+          </div>
+          <div class="mt-4 pt-2 border-t border-emerald-100 text-[10px] font-mono text-emerald-700 font-bold">
+            Zero-Hallucination Grounding Guarantee
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400 font-mono">
+        <div>Technical Deep Dive & Failure Mode Prevention</div>
+        <div>08 / 14</div>
+      </div>
+    </div>
+
+
+    <!-- ==================== SLIDE 9: 08 — RESPONSIBLE DESIGN & PRIVACY ==================== -->
+    <div class="slide-item" data-slide="9">
+      <!-- Header -->
+      <div class="pb-3 border-b border-slate-200">
+        <span class="text-xs font-bold font-mono tracking-wider text-emerald-700 uppercase">08 — Responsible Design, Privacy & Human Oversight</span>
+        <h2 class="text-2xl font-extrabold text-slate-900 mt-0.5">Enterprise Confidentiality with Transparent Human Control</h2>
+      </div>
+
+      <!-- 3 Pillars -->
+      <div class="my-auto py-2 grid grid-cols-3 gap-4">
+        <!-- Pillar 1 -->
+        <div class="p-4 bg-white border border-slate-200 rounded-lg flex flex-col justify-between">
+          <div>
+            <div class="text-[10px] font-mono font-bold text-slate-500 uppercase mb-1">Pillar 01</div>
+            <h3 class="text-sm font-bold text-slate-900 mb-2">Confidentiality & Data Isolation</h3>
+            <ul class="text-xs text-slate-600 space-y-2">
+              <li>• Workspace-level Row-Level Security (RLS) ensures unpublished drafts and proprietary brand books remain strictly isolated.</li>
+              <li>• Complete database tenant separation preventing cross-company data leakage.</li>
+              <li>• Zero customer training: Prompts sent to Gemini are governed by enterprise zero-data-retention parameters.</li>
+              <li>• Encrypted in transit (TLS 1.3) and at rest (AES-256).</li>
+            </ul>
+          </div>
+          <div class="mt-4 pt-2 border-t border-slate-100 text-[10px] font-mono text-slate-400">
+            Tenant-Isolated Encryption
+          </div>
+        </div>
+
+        <!-- Pillar 2 -->
+        <div class="p-4 bg-white border border-slate-200 rounded-lg flex flex-col justify-between">
+          <div>
+            <div class="text-[10px] font-mono font-bold text-slate-500 uppercase mb-1">Pillar 02</div>
+            <h3 class="text-sm font-bold text-slate-900 mb-2">Human-in-the-Loop Guarantee</h3>
+            <ul class="text-xs text-slate-600 space-y-2">
+              <li>• BrandPulse AI operates strictly as an advisory copilot—never as an autonomous editor or publisher.</li>
+              <li>• AI never auto-edits or auto-publishes content without explicit human confirmation.</li>
+              <li>• Content Creators, Leaders, and Managers retain 100% override and approval authority.</li>
+              <li>• All human overrides and approvals are immutably logged for governance auditing.</li>
+            </ul>
+          </div>
+          <div class="mt-4 pt-2 border-t border-slate-100 text-[10px] font-mono text-slate-400">
+            Human Agency Safeguard
+          </div>
+        </div>
+
+        <!-- Pillar 3 -->
+        <div class="p-4 bg-white border border-slate-200 rounded-lg flex flex-col justify-between">
+          <div>
+            <div class="text-[10px] font-mono font-bold text-slate-500 uppercase mb-1">Pillar 03</div>
+            <h3 class="text-sm font-bold text-slate-900 mb-2">Explicit AI Transparency</h3>
+            <ul class="text-xs text-slate-600 space-y-2">
+              <li>• Every generated audit report prominently displays an unambiguous "Evaluated by Google Gemini AI" badge.</li>
+              <li>• AI suggestions are logged and visually demarcated separately from human peer edits.</li>
+              <li>• Audit trails track model version, timestamp, and guideline revision used during verification.</li>
+              <li>• Full provenance ensures trusted organizational governance.</li>
+            </ul>
+          </div>
+          <div class="mt-4 pt-2 border-t border-slate-100 text-[10px] font-mono text-slate-400">
+            Auditable AI Provenance
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400 font-mono">
+        <div>Security Architecture & Responsible AI Principles</div>
+        <div>09 / 14</div>
+      </div>
+    </div>
+
+
+    <!-- ==================== SLIDE 10: 09 — TEAM RESPONSIBILITIES ==================== -->
+    <div class="slide-item" data-slide="10">
+      <!-- Header -->
+      <div class="pb-3 border-b border-slate-200">
+        <span class="text-xs font-bold font-mono tracking-wider text-emerald-700 uppercase">09 — Team Responsibilities & Individual Contributions</span>
+        <h2 class="text-2xl font-extrabold text-slate-900 mt-0.5">Clear Ownership Across Six Engineering Roles</h2>
+      </div>
+
+      <!-- Structured Table -->
+      <div class="my-auto py-2">
+        <div class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-xs">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-900 text-white font-mono text-[11px] uppercase">
+              <tr>
+                <th class="py-2.5 px-4 font-bold">Team Member</th>
+                <th class="py-2.5 px-4 font-bold">Role</th>
+                <th class="py-2.5 px-4 font-bold">Individual Responsibilities & Deliverables</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-[11px]">
+              <tr class="hover:bg-slate-50">
+                <td class="py-2 px-4 font-bold text-slate-900">Haribhaskaran A</td>
+                <td class="py-2 px-4 font-semibold text-emerald-700">Team Lead & AI/RAG</td>
+                <td class="py-2 px-4 text-slate-600">System architecture, FastAPI backend orchestration, and Google Gemini RAG citation pipeline.</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-2 px-4 font-bold text-slate-900">Antonio Danish B</td>
+                <td class="py-2 px-4 font-semibold text-emerald-700">Frontend Architect</td>
+                <td class="py-2 px-4 text-slate-600">React (Vite) frontend architecture, role-based portals (Manager, Leader, Creator), and review UI.</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-2 px-4 font-bold text-slate-900">Deepadharshan R</td>
+                <td class="py-2 px-4 font-semibold text-emerald-700">Data Viz & Analytics</td>
+                <td class="py-2 px-4 text-slate-600">Recharts data visualizations, color-coded content health graphs, and Manager governance analytics dashboard.</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-2 px-4 font-bold text-slate-900">Harish N</td>
+                <td class="py-2 px-4 font-semibold text-emerald-700">Document & Backend Lead</td>
+                <td class="py-2 px-4 text-slate-600">Multi-format document ingestion (pypdf, python-docx), text chunking, and revision diff tracking.</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-2 px-4 font-bold text-slate-900">Barath Kumar K</td>
+                <td class="py-2 px-4 font-semibold text-emerald-700">Computer Vision Lead</td>
+                <td class="py-2 px-4 text-slate-600">Computer vision module (Pillow + Gemini Vision) for brand hex palette, logo clear-space, and WCAG contrast checks.</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-2 px-4 font-bold text-slate-900">Jaswanth Kannan K</td>
+                <td class="py-2 px-4 font-semibold text-emerald-700">Database & Security Lead</td>
+                <td class="py-2 px-4 text-slate-600">Supabase authentication, Role-Based Access Control (RBAC), pgvector indexing, and RLS security policies.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400 font-mono">
+        <div>Team Green Coders — Engineering Allocation</div>
+        <div>10 / 14</div>
+      </div>
+    </div>
+
+
+    <!-- ==================== SLIDE 11: 10 — DEVELOPMENT PLAN ACROSS 3 ROUNDS ==================== -->
+    <div class="slide-item" data-slide="11">
+      <!-- Header -->
+      <div class="pb-3 border-b border-slate-200">
+        <span class="text-xs font-bold font-mono tracking-wider text-emerald-700 uppercase">10 — Development Plan Across All Three Rounds</span>
+        <h2 class="text-2xl font-extrabold text-slate-900 mt-0.5">Phased Execution Roadmap (Plan → Build → Finish)</h2>
+      </div>
+
+      <!-- 3-Stage Timeline Cards -->
+      <div class="my-auto py-2 grid grid-cols-3 gap-4">
+        <!-- Round 1 -->
+        <div class="p-4 bg-white border border-slate-200 rounded-lg flex flex-col justify-between">
+          <div>
+            <div class="text-[10px] font-mono font-bold text-slate-500 uppercase mb-1">Current Phase</div>
+            <h3 class="text-sm font-bold text-slate-900 mb-2">Round 1 — The Plan</h3>
+            <ul class="text-xs text-slate-600 space-y-2">
+              <li>• Finalize empirical problem research (N = 60+ surveyed across media cells & startups).</li>
+              <li>• Architect 3-role human-in-the-loop governance workflow (Manager, Leader, Creator).</li>
+              <li>• Design hybrid RAG + Pillow computer vision pipeline specification.</li>
+              <li>• Establish submission artifacts, pitch deck blueprints, and architecture schemas.</li>
+            </ul>
+          </div>
+          <div class="mt-4 pt-2 border-t border-slate-100 text-[10px] font-mono text-emerald-700 font-semibold">
+            Status: Complete
+          </div>
+        </div>
+
+        <!-- Round 2 -->
+        <div class="p-4 bg-white border border-emerald-300 rounded-lg flex flex-col justify-between shadow-xs">
+          <div>
+            <div class="text-[10px] font-mono font-bold text-emerald-700 uppercase mb-1">Core MVP Delivery</div>
+            <h3 class="text-sm font-bold text-slate-900 mb-2">Round 2 — The Build</h3>
+            <ul class="text-xs text-slate-600 space-y-2">
+              <li>• Implement Supabase RBAC authentication (Manager, Leader, Content Creator).</li>
+              <li>• PDF guideline ingestion with text chunking and pgvector semantic indexing.</li>
+              <li>• Gemini multimodal text + image pre-flight audit with exact rule and page citations.</li>
+              <li>• Color-coded content health graphs & collaborative comment/approval workflow.</li>
+            </ul>
+          </div>
+          <div class="mt-4 pt-2 border-t border-emerald-100 text-[10px] font-mono text-emerald-700 font-bold">
+            Target: Working End-to-End MVP
+          </div>
+        </div>
+
+        <!-- Round 3 -->
+        <div class="p-4 bg-white border border-slate-200 rounded-lg flex flex-col justify-between">
+          <div>
+            <div class="text-[10px] font-mono font-bold text-slate-500 uppercase mb-1">Polish & Scale</div>
+            <h3 class="text-sm font-bold text-slate-900 mb-2">Round 3 — The Finish</h3>
+            <ul class="text-xs text-slate-600 space-y-2">
+              <li>• <strong>1. .docx Tracked Changes Export:</strong> Auto-generates downloadable Word docs with inline suggestions.</li>
+              <li>• <strong>2. Visual Pixel Heatmap Overlay:</strong> Pixel-level highlights on image banners flagging low-contrast regions.</li>
+              <li>• <strong>3. Manager Recurring-Mistake Analytics:</strong> Dashboard identifying ambiguous rules from team violation data.</li>
+            </ul>
+          </div>
+          <div class="mt-4 pt-2 border-t border-slate-100 text-[10px] font-mono text-slate-400">
+            Target: 3 Key Improvements & Benchmarks
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400 font-mono">
+        <div>Hackathon Milestone Execution Plan</div>
+        <div>11 / 14</div>
+      </div>
+    </div>
+
+
+    <!-- ==================== SLIDE 12: 11 — EXPECTED IMPACT & FUTURE SCOPE ==================== -->
+    <div class="slide-item" data-slide="12">
+      <!-- Header -->
+      <div class="pb-3 border-b border-slate-200">
+        <span class="text-xs font-bold font-mono tracking-wider text-emerald-700 uppercase">11 — Expected Impact & Post-Event Future Scope</span>
+        <h2 class="text-2xl font-extrabold text-slate-900 mt-0.5">Measurable Organizational Impact & Long-Term Vision</h2>
+      </div>
+
+      <!-- Top Half: Expected Impact + Bottom Half: Future Scope -->
+      <div class="my-auto py-1 space-y-3">
+        <!-- Top Half (Impact) -->
+        <div>
+          <div class="text-[10px] font-mono font-bold text-slate-400 uppercase mb-1">Measurable Business Impact</div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="p-3 bg-white border border-slate-200 rounded">
+              <div class="text-xl font-extrabold text-emerald-700 font-mono">50%+ Faster</div>
+              <div class="text-xs font-bold text-slate-900 mt-0.5">Review Cycles</div>
+              <div class="text-[11px] text-slate-500 mt-1">Cuts brand turnaround from 48 hours to under 2 hours via instant pre-flight checks.</div>
+            </div>
+            <div class="p-3 bg-white border border-slate-200 rounded">
+              <div class="text-xl font-extrabold text-red-600 font-mono">Zero Leaks</div>
+              <div class="text-xs font-bold text-slate-900 mt-0.5">Off-Brand Protection</div>
+              <div class="text-[11px] text-slate-500 mt-1">Prevents unverified promotional claims, outdated specs, and WCAG contrast failures before release.</div>
+            </div>
+            <div class="p-3 bg-white border border-slate-200 rounded">
+              <div class="text-xl font-extrabold text-slate-900 font-mono">100% Explainable</div>
+              <div class="text-xs font-bold text-slate-900 mt-0.5">Cited Governance</div>
+              <div class="text-[11px] text-slate-500 mt-1">Eliminates subjective disputes by grounding every flag in verbatim guideline quotes and page numbers.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Half (Future Scope) -->
+        <div>
+          <div class="text-[10px] font-mono font-bold text-slate-400 uppercase mb-1">Post-Event Future Scope</div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="p-2.5 bg-white border border-slate-200 rounded text-xs">
+              <div class="font-bold text-slate-900">Browser & Design Plugins</div>
+              <div class="text-[11px] text-slate-500 mt-1">Chrome extension for Google Docs/CMS and a Figma plugin for marketing creatives.</div>
+            </div>
+            <div class="p-2.5 bg-white border border-slate-200 rounded text-xs">
+              <div class="font-bold text-slate-900">ChatOps Approvals</div>
+              <div class="text-[11px] text-slate-500 mt-1">Slack & Microsoft Teams bots delivering audit summaries for 1-click approvals.</div>
+            </div>
+            <div class="p-2.5 bg-white border border-slate-200 rounded text-xs">
+              <div class="font-bold text-slate-900">Enterprise Integrations</div>
+              <div class="text-[11px] text-slate-500 mt-1">Multi-language brand voice verification across global regional divisions and enterprise SSO.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-2 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400 font-mono">
+        <div>Value Realization & Roadmap Beyond Hackathon</div>
+        <div>12 / 14</div>
+      </div>
+    </div>
+
+
+    <!-- ==================== SLIDE 13: 12 — COMPLETE TEAM DETAILS ==================== -->
+    <div class="slide-item" data-slide="13">
+      <!-- Header -->
+      <div class="pb-3 border-b border-slate-200">
+        <span class="text-xs font-bold font-mono tracking-wider text-emerald-700 uppercase">12 — Complete Team & Participant Details</span>
+        <h2 class="text-2xl font-extrabold text-slate-900 mt-0.5">Team Green Coders — Official Roster</h2>
+      </div>
+
+      <!-- Clean Official Roster Table -->
+      <div class="my-auto py-2">
+        <div class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-xs">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-900 text-white font-mono text-[11px] uppercase">
+              <tr>
+                <th class="py-2.5 px-3 font-bold w-12 text-center">S.No</th>
+                <th class="py-2.5 px-4 font-bold w-48">Full Name</th>
+                <th class="py-2.5 px-4 font-bold">Role & Deliverables</th>
+                <th class="py-2.5 px-4 font-bold w-72">Institution & Location</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-[11px]">
+              <tr class="hover:bg-slate-50">
+                <td class="py-2 px-3 text-center font-mono font-bold text-slate-500">01</td>
+                <td class="py-2 px-4 font-bold text-slate-900">Haribhaskaran A</td>
+                <td class="py-2 px-4 font-semibold text-emerald-700">Team Lead & Backend / AI Architect</td>
+                <td class="py-2 px-4 text-slate-600">Sri Krishna College of Engg & Tech, Coimbatore</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-2 px-3 text-center font-mono font-bold text-slate-500">02</td>
+                <td class="py-2 px-4 font-bold text-slate-900">Antonio Danish B</td>
+                <td class="py-2 px-4 font-semibold text-emerald-700">Frontend & Workflow Engineer</td>
+                <td class="py-2 px-4 text-slate-600">Sri Krishna College of Engg & Tech, Coimbatore</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-2 px-3 text-center font-mono font-bold text-slate-500">03</td>
+                <td class="py-2 px-4 font-bold text-slate-900">Deepadharshan R</td>
+                <td class="py-2 px-4 font-semibold text-emerald-700">Data Visualization & Analytics Lead</td>
+                <td class="py-2 px-4 text-slate-600">Sri Krishna College of Engg & Tech, Coimbatore</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-2 px-3 text-center font-mono font-bold text-slate-500">04</td>
+                <td class="py-2 px-4 font-bold text-slate-900">Harish N</td>
+                <td class="py-2 px-4 font-semibold text-emerald-700">Document Processing & API Engineer</td>
+                <td class="py-2 px-4 text-slate-600">Sri Krishna College of Engg & Tech, Coimbatore</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-2 px-3 text-center font-mono font-bold text-slate-500">05</td>
+                <td class="py-2 px-4 font-bold text-slate-900">Barath Kumar K</td>
+                <td class="py-2 px-4 font-semibold text-emerald-700">Computer Vision & Accessibility Engineer</td>
+                <td class="py-2 px-4 text-slate-600">Sri Krishna College of Engg & Tech, Coimbatore</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-2 px-3 text-center font-mono font-bold text-slate-500">06</td>
+                <td class="py-2 px-4 font-bold text-slate-900">Jaswanth Kannan K</td>
+                <td class="py-2 px-4 font-semibold text-emerald-700">Database, Auth & Security Engineer</td>
+                <td class="py-2 px-4 text-slate-600">Sri Krishna College of Engg & Tech, Coimbatore</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400 font-mono">
+        <div>Official Participant Credentials</div>
+        <div>13 / 14</div>
+      </div>
+    </div>
+
+
+    <!-- ==================== SLIDE 14: THANK YOU PAGE ==================== -->
+    <div class="slide-item" data-slide="14">
+      <div></div>
+      <!-- Minimal Centered Canvas Matching Slide 1 -->
+      <div class="text-center space-y-3 my-auto">
+        <h1 class="text-5xl font-extrabold text-slate-900 tracking-tight">
+          Thank You
+        </h1>
+        <div class="text-lg font-bold text-emerald-700 pt-2">
+          BrandPulse AI  —  Team Green Coders
+        </div>
+        <div class="text-sm text-slate-600">
+          Sri Krishna College of Engineering and Technology, Coimbatore
+        </div>
+        <div class="text-xs font-mono text-slate-400 pt-4">
+          Inkloom AI Brand-Governance Challenge  •  Round 1: The Plan
+        </div>
+      </div>
+
+      <!-- Slide Indicator -->
+      <div class="pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs text-slate-400 font-mono">
+        <div>BrandPulse AI  •  Team Green Coders</div>
+        <div>14 / 14</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== MINIMAL FLOATING CONTROLS ==================== -->
+<div class="no-print fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md text-white px-5 py-2.5 rounded-full shadow-2xl border border-slate-700 flex items-center gap-4 text-xs z-50">
+  <button id="prevBtn" class="p-1 rounded-full hover:bg-slate-800 text-slate-300 hover:text-white" title="Previous Slide (←)">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+  </button>
+
+  <span id="slideIndicator" class="font-mono text-slate-200 tracking-wider">
+    Slide <span id="currentNum" class="font-bold text-emerald-400">1</span> of 14
+  </span>
+
+  <button id="nextBtn" class="p-1 rounded-full hover:bg-slate-800 text-slate-300 hover:text-white" title="Next Slide (→ or Space)">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+  </button>
+
+  <span class="w-px h-4 bg-slate-700"></span>
+
+  <button id="thumbToggleBtn" class="px-2.5 py-1 rounded hover:bg-slate-800 text-slate-300 hover:text-white font-medium">
+    Index
+  </button>
+
+  <button id="fullscreenBtn" class="p-1 rounded hover:bg-slate-800 text-slate-300 hover:text-white" title="Fullscreen">
+    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+  </button>
+
+  <button id="printBtn" class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 font-semibold text-white flex items-center gap-1.5" title="Print to PDF">
+    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+    PDF
+  </button>
+</div>
+
+<!-- ==================== SLIDE INDEX MODAL ==================== -->
+<div id="thumbModal" class="no-print fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex-col items-center justify-center p-8">
+  <div class="max-w-4xl w-full bg-slate-900 rounded-xl border border-slate-800 p-6 flex flex-col max-h-[85vh]">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-800 text-white">
+      <h3 class="text-sm font-bold font-mono text-emerald-400">PRESENTATION SLIDE INDEX (14 SLIDES)</h3>
+      <button id="closeThumbBtn" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+    </div>
+    <div class="grid grid-cols-2 gap-2 overflow-y-auto py-4 text-xs font-mono" id="thumbGrid">
+      <!-- Generated via JS -->
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentSlide = 1;
+  const totalSlides = 14;
+  const slideTitles = [
+    "Cover Page (Metadata Only)",
+    "01 — Understanding of the Problem Statement",
+    "02 — Users Affected & Research Validation",
+    "03 — Proposed Solution & Value Proposition",
+    "04 — Complete End-to-End Product Workflow",
+    "05 — Main Features & Visual Content Graphs",
+    "06 — Technology Stack & System Architecture",
+    "07 — Key Technical Challenge & Solution",
+    "08 — Responsible Design, Privacy & Human Oversight",
+    "09 — Team Responsibilities & Ownership",
+    "10 — Development Plan Across Three Rounds",
+    "11 — Expected Impact & Post-Event Future Scope",
+    "12 — Team Green Coders Official Roster",
+    "Closing Page (Thank You)"
+  ];
+
+  function showSlide(num) {
+    if (num < 1) num = 1;
+    if (num > totalSlides) num = totalSlides;
+    currentSlide = num;
+
+    document.querySelectorAll('.slide-item').forEach(el => {
+      el.classList.remove('active');
+    });
+
+    const activeEl = document.querySelector(`.slide-item[data-slide="${num}"]`);
+    if (activeEl) {
+      activeEl.classList.add('active');
+    }
+
+    document.getElementById('currentNum').innerText = currentSlide;
+    document.getElementById('prevBtn').disabled = (currentSlide === 1);
+    document.getElementById('nextBtn').disabled = (currentSlide === totalSlides);
+  }
+
+  document.getElementById('prevBtn').addEventListener('click', () => showSlide(currentSlide - 1));
+  document.getElementById('nextBtn').addEventListener('click', () => showSlide(currentSlide + 1));
+
+  // Keyboard navigation
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      showSlide(currentSlide + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      showSlide(currentSlide - 1);
+    } else if (e.key === 'Home') {
+      showSlide(1);
+    } else if (e.key === 'End') {
+      showSlide(totalSlides);
+    } else if (e.key === 'Escape') {
+      document.getElementById('thumbModal').classList.add('hidden');
+    }
+  });
+
+  // Fullscreen
+  document.getElementById('fullscreenBtn').addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  });
+
+  // Print PDF
+  document.getElementById('printBtn').addEventListener('click', () => {
+    window.print();
+  });
+
+  // Thumbnail index
+  const thumbModal = document.getElementById('thumbModal');
+  const thumbGrid = document.getElementById('thumbGrid');
+  const thumbToggleBtn = document.getElementById('thumbToggleBtn');
+  const closeThumbBtn = document.getElementById('closeThumbBtn');
+
+  for (let i = 1; i <= totalSlides; i++) {
+    const row = document.createElement('div');
+    row.className = "p-2 rounded bg-slate-950 border border-slate-800 hover:border-emerald-500 cursor-pointer transition-all flex items-center justify-between text-slate-300 hover:text-white";
+    row.innerHTML = `
+      <div class="flex items-center gap-2">
+        <span class="text-emerald-400 font-bold">${i.toString().padStart(2, '0')}</span>
+        <span>${slideTitles[i - 1]}</span>
+      </div>
+      <span class="text-[10px] text-slate-500">Go →</span>
+    `;
+    row.addEventListener('click', () => {
+      showSlide(i);
+      thumbModal.classList.add('hidden');
+    });
+    thumbGrid.appendChild(row);
+  }
+
+  thumbToggleBtn.addEventListener('click', () => {
+    thumbModal.classList.remove('hidden');
+  });
+
+  closeThumbBtn.addEventListener('click', () => {
+    thumbModal.classList.add('hidden');
+  });
+
+  thumbModal.addEventListener('click', (e) => {
+    if (e.target === thumbModal) thumbModal.classList.add('hidden');
+  });
+
+  showSlide(1);
+</script>
+</body>
+</html>
