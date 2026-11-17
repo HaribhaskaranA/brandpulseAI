@@ -4,7 +4,12 @@ import CreatorView from "./components/CreatorView";
 import LeaderView from "./components/LeaderView";
 import ManagerView from "./components/ManagerView";
 import ApiKeyModal from "./components/ApiKeyModal";
-import { INITIAL_BRAND_KIT, INITIAL_DRAFTS, INITIAL_ANALYTICS } from "./data/initialData";
+import { 
+  INITIAL_BRAND_KIT, 
+  INITIAL_CREATOR_DRAFT, 
+  INITIAL_LEADER_REVIEWS, 
+  INITIAL_ANALYTICS 
+} from "./data/initialData";
 import { analyzeContentWithGemini } from "./services/geminiAudit";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 
@@ -23,14 +28,26 @@ export default function App() {
     return INITIAL_BRAND_KIT;
   });
 
-  const [drafts, setDrafts] = useState(() => {
+  // Isolated Creator Draft State (strictly private to Creator)
+  const [creatorDraft, setCreatorDraft] = useState(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("brandpulse_drafts");
+      const saved = localStorage.getItem("brandpulse_creator_draft");
       if (saved) {
         try { return JSON.parse(saved); } catch (e) { /* ignore */ }
       }
     }
-    return INITIAL_DRAFTS;
+    return INITIAL_CREATOR_DRAFT;
+  });
+
+  // Organizational Leader Review Queue (peer publications only)
+  const [leaderReviews, setLeaderReviews] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("brandpulse_leader_reviews");
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) { /* ignore */ }
+      }
+    }
+    return INITIAL_LEADER_REVIEWS;
   });
 
   const [analytics, setAnalytics] = useState(() => {
@@ -43,7 +60,7 @@ export default function App() {
     return INITIAL_ANALYTICS;
   });
 
-  const [activeDraftId, setActiveDraftId] = useState(INITIAL_DRAFTS[0].id);
+  const [activeLeaderDraftId, setActiveLeaderDraftId] = useState(INITIAL_LEADER_REVIEWS[0].id);
   const [isAuditing, setIsAuditing] = useState(false);
   const [apiModalOpen, setApiModalOpen] = useState(false);
   const [toast, setToast] = useState(null);
@@ -57,9 +74,15 @@ export default function App() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      localStorage.setItem("brandpulse_drafts", JSON.stringify(drafts));
+      localStorage.setItem("brandpulse_creator_draft", JSON.stringify(creatorDraft));
     }
-  }, [drafts]);
+  }, [creatorDraft]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("brandpulse_leader_reviews", JSON.stringify(leaderReviews));
+    }
+  }, [leaderReviews]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -74,47 +97,38 @@ export default function App() {
     }, 3500);
   };
 
-  // Run initial audit on load for draft 1 if it has none
+  // Run initial audit on load for creator draft if it has none
   useEffect(() => {
-    const draft1 = drafts.find(d => d.id === INITIAL_DRAFTS[0].id);
-    if (draft1 && !draft1.lastAudit) {
-      analyzeContentWithGemini(draft1, brandKit).then(audit => {
-        setDrafts(prev => prev.map(d => d.id === draft1.id ? { ...d, lastAudit: audit } : d));
+    if (creatorDraft && !creatorDraft.lastAudit) {
+      analyzeContentWithGemini(creatorDraft, brandKit).then(audit => {
+        setCreatorDraft(prev => ({ ...prev, lastAudit: audit }));
       });
     }
   }, []);
 
-  const activeDraft = drafts.find(d => d.id === activeDraftId) || drafts[0];
-
-  // Actions
-  const handleUpdateDraft = (updatedDraft) => {
-    setDrafts(prev => prev.map(d => d.id === updatedDraft.id ? updatedDraft : d));
+  // --- Creator Actions (Strictly Isolated Workspace) ---
+  const handleUpdateCreatorDraft = (updatedDraft) => {
+    setCreatorDraft(updatedDraft);
   };
 
   const handleRunAudit = async () => {
     setIsAuditing(true);
     try {
-      // Simulate real-time async feeling
       await new Promise(r => setTimeout(r, 600));
-      const auditResult = await analyzeContentWithGemini(activeDraft, brandKit);
-      setDrafts(prev => prev.map(d => {
-        if (d.id === activeDraft.id) {
-          return {
-            ...d,
-            lastAudit: auditResult,
-            history: [
-              ...(d.history || []),
-              {
-                id: `hist-${Date.now()}`,
-                timestamp: new Date().toISOString(),
-                type: "audit",
-                author: "Google Gemini AI",
-                note: `Pre-flight audit generated (Score: ${auditResult.overallScore}/100)`
-              }
-            ]
-          };
-        }
-        return d;
+      const auditResult = await analyzeContentWithGemini(creatorDraft, brandKit);
+      setCreatorDraft(prev => ({
+        ...prev,
+        lastAudit: auditResult,
+        history: [
+          ...(prev.history || []),
+          {
+            id: `hist-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            type: "audit",
+            author: "Google Gemini AI",
+            note: `Pre-flight audit generated (Score: ${auditResult.overallScore}/100)`
+          }
+        ]
       }));
       showToast(`Gemini Pre-Flight Check Complete! Score: ${auditResult.overallScore}/100`);
     } catch (err) {
@@ -128,67 +142,48 @@ export default function App() {
   const handleApplyFix = async (neg) => {
     if (!neg.flaggedText || !neg.suggestedRewrite) return;
     
-    // Replace the exact text in content
-    const oldContent = activeDraft.content || "";
+    const oldContent = creatorDraft.content || "";
     const newContent = oldContent.replace(neg.flaggedText, neg.suggestedRewrite);
+    const hadContrastIssue = neg.category === "Accessibility" && creatorDraft.hasImageContrastIssue;
 
-    // If it was an image contrast issue, toggle off the issue
-    const hadContrastIssue = neg.category === "Accessibility" && activeDraft.hasImageContrastIssue;
-
-    const updatedDraft = {
-      ...activeDraft,
+    const updated = {
+      ...creatorDraft,
       content: newContent,
-      hasImageContrastIssue: hadContrastIssue ? false : activeDraft.hasImageContrastIssue,
+      hasImageContrastIssue: hadContrastIssue ? false : creatorDraft.hasImageContrastIssue,
       history: [
-        ...(activeDraft.history || []),
+        ...(creatorDraft.history || []),
         {
           id: `hist-${Date.now()}`,
           timestamp: new Date().toISOString(),
           type: "fix_applied",
-          author: "Alex Chen (Creator)",
+          author: "Content Creator",
           note: `Applied 1-click suggested fix for "${neg.flaggedText}" -> "${neg.suggestedRewrite}"`
         }
       ]
     };
 
-    handleUpdateDraft(updatedDraft);
+    setCreatorDraft(updated);
 
-    // Re-evaluate immediately with updated content
-    const newAudit = await analyzeContentWithGemini(updatedDraft, brandKit);
-    handleUpdateDraft({
-      ...updatedDraft,
+    // Re-evaluate immediately
+    const newAudit = await analyzeContentWithGemini(updated, brandKit);
+    setCreatorDraft({
+      ...updated,
       lastAudit: newAudit
     });
 
     showToast(`Applied fix: "${neg.suggestedRewrite}"`);
   };
 
-  const handleSubmitToLeader = () => {
-    setDrafts(prev => prev.map(d => {
-      if (d.id === activeDraft.id) {
-        return {
-          ...d,
-          status: "Needs Review",
-          submittedAt: new Date().toISOString(),
-          history: [
-            ...(d.history || []),
-            {
-              id: `hist-${Date.now()}`,
-              timestamp: new Date().toISOString(),
-              type: "submission",
-              author: "Alex Chen (Creator)",
-              note: `Submitted to Leader Review Desk with Gemini Audit (Score: ${d.lastAudit?.overallScore || 0}/100)`
-            }
-          ]
-        };
-      }
-      return d;
-    }));
-    showToast("Draft submitted to Leader queue for approval!");
+  const handleSaveCreatorDraft = () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("brandpulse_creator_draft", JSON.stringify(creatorDraft));
+    }
+    showToast("Draft saved privately to your local workspace.");
   };
 
+  // --- Leader Review Desk Actions ---
   const handleApproveDraft = (draftId) => {
-    setDrafts(prev => prev.map(d => {
+    setLeaderReviews(prev => prev.map(d => {
       if (d.id === draftId) {
         return {
           ...d,
@@ -199,7 +194,7 @@ export default function App() {
               id: `hist-${Date.now()}`,
               timestamp: new Date().toISOString(),
               type: "approval",
-              author: currentRole === "manager" ? "Marcus Vance (Manager)" : "Sarah Jenkins (Leader)",
+              author: "Editorial Leader",
               note: "Formally approved for publication. Digital compliance certificate locked."
             }
           ]
@@ -211,7 +206,7 @@ export default function App() {
   };
 
   const handleRequestRevisions = (draftId) => {
-    setDrafts(prev => prev.map(d => {
+    setLeaderReviews(prev => prev.map(d => {
       if (d.id === draftId) {
         return {
           ...d,
@@ -222,19 +217,19 @@ export default function App() {
               id: `hist-${Date.now()}`,
               timestamp: new Date().toISOString(),
               type: "revision_request",
-              author: "Sarah Jenkins (Leader)",
-              note: "Returned to creator with comments requesting revisions."
+              author: "Editorial Leader",
+              note: "Returned with comments requesting revisions."
             }
           ]
         };
       }
       return d;
     }));
-    showToast("Revisions requested. Returned to Creator studio.", "error");
+    showToast("Revisions requested. Notification sent to author team.", "error");
   };
 
   const handleAddComment = (draftId, commentObj) => {
-    setDrafts(prev => prev.map(d => {
+    setLeaderReviews(prev => prev.map(d => {
       if (d.id === draftId) {
         return {
           ...d,
@@ -253,6 +248,7 @@ export default function App() {
     showToast("Feedback comment posted!");
   };
 
+  // --- Manager Brand Vault Actions ---
   const handleAddRule = (ruleObj) => {
     setBrandKit(prev => ({
       ...prev,
@@ -261,23 +257,26 @@ export default function App() {
     showToast(`New rule activated: "${ruleObj.title}"`);
   };
 
+  // --- Global Reset Demo Action ---
   const handleResetDemo = async () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem("brandpulse_brandkit");
-      localStorage.removeItem("brandpulse_drafts");
+      localStorage.removeItem("brandpulse_creator_draft");
+      localStorage.removeItem("brandpulse_leader_reviews");
       localStorage.removeItem("brandpulse_analytics");
     }
-    const freshDrafts = JSON.parse(JSON.stringify(INITIAL_DRAFTS));
+    const freshCreatorDraft = JSON.parse(JSON.stringify(INITIAL_CREATOR_DRAFT));
     const freshBrandKit = JSON.parse(JSON.stringify(INITIAL_BRAND_KIT));
+    const freshLeaderReviews = JSON.parse(JSON.stringify(INITIAL_LEADER_REVIEWS));
     
-    // Auto-audit draft 1
-    const audit1 = await analyzeContentWithGemini(freshDrafts[0], freshBrandKit);
-    freshDrafts[0].lastAudit = audit1;
+    const audit1 = await analyzeContentWithGemini(freshCreatorDraft, freshBrandKit);
+    freshCreatorDraft.lastAudit = audit1;
 
     setBrandKit(freshBrandKit);
-    setDrafts(freshDrafts);
+    setCreatorDraft(freshCreatorDraft);
+    setLeaderReviews(freshLeaderReviews);
     setAnalytics(INITIAL_ANALYTICS);
-    setActiveDraftId(freshDrafts[0].id);
+    setActiveLeaderDraftId(freshLeaderReviews[0].id);
     showToast("Demo data reset to initial Acme Cloud Brand Book state!");
   };
 
@@ -313,37 +312,35 @@ export default function App() {
           </div>
         )}
 
-        {/* View A: Content Creator */}
+        {/* View A: Content Creator (Isolated Private Studio) */}
         {currentRole === "creator" && (
           <CreatorView
-            draft={activeDraft}
-            onUpdateDraft={handleUpdateDraft}
+            draft={creatorDraft}
+            onUpdateDraft={handleUpdateCreatorDraft}
             onRunAudit={handleRunAudit}
-            onSubmitToLeader={handleSubmitToLeader}
+            onSaveDraft={handleSaveCreatorDraft}
             isAuditing={isAuditing}
             onApplyFix={handleApplyFix}
           />
         )}
 
-        {/* View B: Leader Review Desk */}
+        {/* View B: Leader Review Desk (Departmental Publications Only) */}
         {currentRole === "leader" && (
           <LeaderView
-            drafts={drafts}
-            selectedDraftId={activeDraftId}
-            onSelectDraft={setActiveDraftId}
+            drafts={leaderReviews}
+            selectedDraftId={activeLeaderDraftId}
+            onSelectDraft={setActiveLeaderDraftId}
             onApproveDraft={handleApproveDraft}
             onRequestRevisions={handleRequestRevisions}
             onAddComment={handleAddComment}
           />
         )}
 
-        {/* View C: Manager Governance & Brand Vault */}
+        {/* View C: Manager Governance & Brand Vault (Zero Access to Creator Drafts) */}
         {currentRole === "manager" && (
           <ManagerView
             brandKit={brandKit}
             onAddRule={handleAddRule}
-            drafts={drafts}
-            onApproveDraft={handleApproveDraft}
             analytics={analytics}
           />
         )}
@@ -357,7 +354,7 @@ export default function App() {
             <strong>BrandPulse AI</strong> • Powered by Google Gemini Multimodal Engine • Grounded in Acme Cloud Brand Book v2.1
           </div>
           <div className="font-mono text-slate-400">
-            Team: Green Coders (Sri Krishna College of Engg & Tech)
+            Enterprise Brand Governance Platform
           </div>
         </div>
       </footer>

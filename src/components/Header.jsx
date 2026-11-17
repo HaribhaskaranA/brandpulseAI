@@ -10,9 +10,9 @@ import {
 } from "lucide-react";
 
 export const ROLES = [
-  { id: "creator", label: "Content Creator", persona: "Alex Chen", badge: "Author & Drafter" },
-  { id: "leader", label: "Leader", persona: "Sarah Jenkins", badge: "Team Reviewer" },
-  { id: "manager", label: "Manager", persona: "Marcus Vance", badge: "Governance Authority" }
+  { id: "creator", label: "Content Creator", persona: "Creator Studio", badge: "Private Workspace" },
+  { id: "leader", label: "Leader", persona: "Editorial Review", badge: "Publication Gate" },
+  { id: "manager", label: "Manager", persona: "Brand Policy", badge: "Governance & Vault" }
 ];
 
 export default function Header({ currentRole, onRoleChange, onResetDemo, onOpenApiModal }) {

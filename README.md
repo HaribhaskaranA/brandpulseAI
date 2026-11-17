@@ -15,9 +15,9 @@ Instead of acting as a rigid blocker or failing silently, BrandPulse AI function
 ### 1. Zero Login Wall (Judge-Ready)
 - Loads directly into the working workspace without blocking email/password screens.
 - **1-Click Role Switcher** at the top:
-  - **Content Creator (Alex Chen):** Drafts multi-format copy, attaches creative banners, runs sub-5s Gemini pre-flight checks, and applies 1-click suggested rewrites.
-  - **Leader (Sarah Jenkins):** Inspects the shared Brand Evaluation Report, leaves inline comments, tracks revision diffs, and grants formal digital sign-off.
-  - **Manager (Marcus Vance):** Uploads & approves new guidelines in the Brand Vault, and analyzes recurring violation heatmaps across teams.
+  - **Content Creator:** Drafts multi-format copy, tests creative banners, runs sub-5s Gemini pre-flight checks, and applies 1-click suggested rewrites in an isolated private workspace.
+  - **Leader:** Inspects departmental document drafts, leaves collaborative comments, tracks revision diffs, and grants formal digital sign-off.
+  - **Manager:** Uploads & approves new guidelines in the Brand Vault, and analyzes recurring violation heatmaps across teams without surveilling private creator drafts.
 
 ### 2. Live Google Gemini API + Intelligent Local Fallback Engine
 - Dedicated `src/services/geminiAudit.js` module.

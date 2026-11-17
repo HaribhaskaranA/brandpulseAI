@@ -84,45 +84,39 @@ export const INITIAL_BRAND_KIT = {
   ]
 };
 
-export const INITIAL_DRAFTS = [
+// Content created by creators is strictly private and isolated
+export const INITIAL_CREATOR_DRAFT = {
+  id: "creator-draft-001",
+  title: "Q4 Launch Campaign Creative",
+  channel: "Social Post",
+  author: "Content Creator",
+  submittedAt: "2026-11-17T10:30:00Z",
+  status: "Private Draft",
+  content: "Our 100% sick cloud engine guarantees 10x faster speeds than every competitor! Acme Cloud completely demolishes old legacy databases with guaranteed 100% uptime and zero latency anywhere in the world. Switch now to the undisputed #1 platform.",
+  bannerUrl: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&auto=format&fit=crop&q=80",
+  bannerName: "acme-q4-cloud-hero.jpg",
+  hasImage: true,
+  hasImageContrastIssue: true,
+  lastAudit: null,
+  history: [
+    {
+      id: "hist-1",
+      timestamp: "2026-11-17T10:15:00Z",
+      type: "creation",
+      author: "Content Creator",
+      note: "Draft created in Creator Studio (Isolated Workspace)"
+    }
+  ]
+};
+
+// Organizational peer reviews visible only to Leaders
+export const INITIAL_LEADER_REVIEWS = [
   {
-    id: "draft-001",
-    title: "Q4 Enterprise Launch Social Campaign",
-    channel: "Social Post",
-    author: "Alex Chen (Content Creator)",
-    submittedAt: "2026-11-16T10:30:00Z",
-    status: "Draft",
-    content: "Our 100% sick cloud engine guarantees 10x faster speeds than every competitor! Acme Cloud completely demolishes old legacy databases with guaranteed 100% uptime and zero latency anywhere in the world. Switch now to the undisputed #1 platform.",
-    bannerUrl: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&auto=format&fit=crop&q=80",
-    bannerName: "acme-q4-cloud-hero.jpg",
-    hasImage: true,
-    hasImageContrastIssue: true,
-    lastAudit: null,
-    history: [
-      {
-        id: "hist-1",
-        timestamp: "2026-11-16T10:15:00Z",
-        type: "creation",
-        author: "Alex Chen",
-        note: "Initial draft composed in Web Studio"
-      }
-    ],
-    comments: [
-      {
-        id: "comm-1",
-        author: "Sarah Jenkins (Leader)",
-        role: "Leader",
-        timestamp: "2026-11-16T10:45:00Z",
-        text: "Alex, looks promising but please check the claims against our Q3 SLA documentation before submitting for sign-off."
-      }
-    ]
-  },
-  {
-    id: "draft-002",
-    title: "Enterprise Whitepaper: Modern Data Pipelines",
+    id: "review-doc-001",
+    title: "Enterprise Whitepaper: Modern Cloud Architecture",
     channel: "Document Draft",
-    author: "Elena Rostova (Technical Writer)",
-    submittedAt: "2026-11-16T09:00:00Z",
+    author: "Technical Writing Team",
+    submittedAt: "2026-11-17T09:00:00Z",
     status: "Needs Review",
     content: "Modern enterprise data platforms require verifiable fault-tolerance and predictable latency. Acme Cloud delivers 99.95% uptime SLA across 42 global regions, enabling teams to scale without operational bottlenecks. Over 10,000 enterprise partners trust our verified cloud infrastructure for mission-critical analytics.",
     bannerUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop&q=80",
@@ -145,31 +139,31 @@ export const INITIAL_DRAFTS = [
         "Calm, evidence-backed tone matches executive whitepaper standards."
       ],
       negatives: [],
-      timestamp: "2026-11-16T09:10:00Z"
+      timestamp: "2026-11-17T09:10:00Z"
     },
     history: [
       {
         id: "hist-201",
-        timestamp: "2026-11-16T08:30:00Z",
+        timestamp: "2026-11-17T08:30:00Z",
         type: "creation",
-        author: "Elena Rostova",
+        author: "Technical Writing Team",
         note: "Whitepaper summary drafted"
       },
       {
         id: "hist-202",
-        timestamp: "2026-11-16T09:00:00Z",
+        timestamp: "2026-11-17T09:00:00Z",
         type: "submission",
-        author: "Elena Rostova",
-        note: "Submitted draft to Leader queue (Score: 92/100)"
+        author: "Editorial Team",
+        note: "Submitted for peer leadership review (Score: 92/100)"
       }
     ],
     comments: [
       {
         id: "comm-201",
-        author: "Sarah Jenkins (Leader)",
+        author: "Editorial Leader",
         role: "Leader",
-        timestamp: "2026-11-16T09:30:00Z",
-        text: "Clean, authoritative tone. Ready for final publication approval."
+        timestamp: "2026-11-17T09:30:00Z",
+        text: "Clean, authoritative tone. Ready for publication clearance."
       }
     ]
   }

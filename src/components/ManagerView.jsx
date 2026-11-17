@@ -20,13 +20,10 @@ import ReportCard from "./ReportCard";
 export default function ManagerView({ 
   brandKit, 
   onAddRule, 
-  drafts, 
-  onApproveDraft, 
   analytics 
 }) {
   const [activeTab, setActiveTab] = useState("vault"); // "vault" | "insights"
   const [isAddingRule, setIsAddingRule] = useState(false);
-  const [selectedFeedDraftId, setSelectedFeedDraftId] = useState(drafts[0]?.id || "");
   
   // New rule form state
   const [newCategory, setNewCategory] = useState("Tone & Voice");
@@ -37,8 +34,6 @@ export default function ManagerView({
   const [newVerifiedFact, setNewVerifiedFact] = useState("");
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
-
-  const activeFeedDraft = drafts.find(d => d.id === selectedFeedDraftId) || drafts[0];
 
   const handleCreateRule = (e) => {
     e.preventDefault();
@@ -413,57 +408,55 @@ export default function ManagerView({
             </div>
           </div>
 
-          {/* Executive Review Feed of Submitted Drafts */}
+          {/* Enterprise Content Privacy Guarantee Card */}
           <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Executive Review Feed (Manager Overrides & Audits)</span>
-                </h3>
-                <p className="text-xs text-slate-500">Inspect full audit details of any team draft across the organization.</p>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                <h3 className="text-sm font-bold text-slate-900">Zero-Knowledge Content Privacy Architecture</h3>
               </div>
+              <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200 font-bold">
+                POLICY GUARANTEE
+              </span>
             </div>
 
-            <div className="flex gap-2 pb-2 overflow-x-auto">
-              {drafts.map((d) => (
-                <button
-                  key={d.id}
-                  onClick={() => setSelectedFeedDraftId(d.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all ${
-                    selectedFeedDraftId === d.id
-                      ? "bg-slate-900 text-white shadow-xs"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  {d.title} ({d.status})
-                </button>
-              ))}
-            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Under BrandPulse AI enterprise governance principles, <strong>Managers cannot view or inspect individual content drafts created by creators</strong>. 
+              Managers govern brand rules, manage verified facts in the Brand Vault, and inspect high-level telemetry. 
+              Individual drafts remain strictly private to creators to maintain creative autonomy and internal confidentiality.
+            </p>
 
-            {activeFeedDraft && (
-              <div className="space-y-4 pt-2 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900">{activeFeedDraft.title}</h4>
-                    <span className="text-xs text-slate-500">Author: {activeFeedDraft.author} • Channel: {activeFeedDraft.channel}</span>
-                  </div>
-
-                  {activeFeedDraft.status !== "Approved" && (
-                    <button
-                      type="button"
-                      onClick={() => onApproveDraft(activeFeedDraft.id)}
-                      className="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs flex items-center gap-1.5"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Executive Override Approval</span>
-                    </button>
-                  )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs">
+                <div className="font-bold text-slate-900 mb-1 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>Zero Surveillance</span>
                 </div>
-
-                <ReportCard audit={activeFeedDraft.lastAudit} onApplyFix={null} />
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Creator drafts and pre-flight tests are never accessible or visible in the Manager console.
+                </p>
               </div>
-            )}
+
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs">
+                <div className="font-bold text-slate-900 mb-1 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>Aggregated Telemetry</span>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Managers observe rule performance percentages, not creator identities or draft content.
+                </p>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs">
+                <div className="font-bold text-slate-900 mb-1 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>Policy-First Governance</span>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Managers update Brand Vault guidelines which Google Gemini enforces across all creators.
+                </p>
+              </div>
+            </div>
           </div>
 
         </div>

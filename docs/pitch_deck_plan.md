@@ -1,9 +1,7 @@
 # BrandPulse AI — 14-Slide Presentation Blueprint (Round 1: The Plan)
 **Hackathon:** Inkloom AI Brand-Governance Challenge  
-**Team Name:** Green Coders  
-**Team Lead:** Haribhaskaran A  
-**Team Members:** Antonio Danish B, Deepadharshan R, Harish N, Barath Kumar K, Jaswanth Kannan K  
-**Institution:** Sri Krishna College of Engineering and Technology, Coimbatore, Tamil Nadu  
+**Project:** BrandPulse AI  
+**Theme:** Pre-Publication Brand Governance Platform Powered by Google Gemini  
 **Aesthetic Style:** Human-Crafted Minimalist (Figma / Keynote Style)  
 **Palette:** Crisp Off-White Canvas (`#FAFAFA`), Deep Charcoal Ink (`#111827`), Muted Slate Body (`#4B5563`), Forest-Emerald Accent (`#059669`), 1px Structural Dividers (`#E5E7EB`)  
 **Format:** 16:9 Widescreen Presentation (14 Slides)
@@ -19,10 +17,8 @@
   - **Product Name:** **BrandPulse AI**
   - **Subtitle:** Pre-Publication Brand Governance Platform Powered by Google Gemini
   - **Thin Divider Line (`#E5E7EB`)**
-  - **Team Name:** Green Coders
-  - **Team Members:** Haribhaskaran A (Team Lead), Antonio Danish B, Deepadharshan R, Harish N, Barath Kumar K, Jaswanth Kannan K
-  - **College:** Sri Krishna College of Engineering and Technology
-  - **Location:** Coimbatore, Tamil Nadu
+  - **Platform Focus:** Enterprise Multi-Role Brand Consistency & Governance
+  - **Track:** Round 1 — The Plan (Architecture, RAG Grounding & Workflows)
 
 ---
 
@@ -115,17 +111,17 @@
 
 ---
 
-### Slide 10: 09 — Team Responsibilities & Individual Contributions
-* **Headline:** **Clear Ownership Across Six Engineering Roles**
-* **Team Allocation Table:**
-  | Team Member | Role | Individual Responsibilities & Deliverables |
+### Slide 10: 09 — Workstream Responsibilities & Ownership
+* **Headline:** **Clear Ownership Across Six Core Technical Workstreams**
+* **Workstream Allocation Table:**
+  | Core Workstream | Focus Area | Technical Responsibilities & Deliverables |
   | :--- | :--- | :--- |
-  | **Haribhaskaran A** | **Team Lead & AI/RAG** | System architecture, FastAPI backend orchestration, and Google Gemini RAG citation pipeline. |
-  | **Antonio Danish B** | **Frontend Architect** | React (Vite) frontend architecture, role-based portals (Manager, Leader, Creator), and review UI. |
-  | **Deepadharshan R** | **Data Viz & Analytics Lead** | Recharts data visualizations, color-coded content health graphs, and Manager governance analytics dashboard. |
-  | **Harish N** | **Document & Backend Lead** | Multi-format document ingestion (`pypdf`, `python-docx`), text chunking, and revision diff tracking. |
-  | **Barath Kumar K** | **Computer Vision Lead** | Computer vision module (`Pillow` + Gemini Vision) for brand hex palette, logo clear-space, and WCAG contrast checks. |
-  | **Jaswanth Kannan K** | **Database & Security Lead** | Supabase authentication, Role-Based Access Control (RBAC), `pgvector` indexing, and RLS security policies. |
+  | **Backend & AI Orchestration** | **Lead Architect** | System architecture, FastAPI backend orchestration, and Google Gemini RAG citation pipeline. |
+  | **Frontend & Workspaces** | **Workflow Lead** | React (Vite) frontend architecture, role-based portals (Manager, Leader, Creator), and review UI. |
+  | **Data Analytics & Metrics** | **Visualization Lead** | Recharts data visualizations, color-coded content health graphs, and Manager governance analytics dashboard. |
+  | **Document & Text Ingestion** | **Pipeline Lead** | Multi-format document ingestion (`pypdf`, `python-docx`), text chunking, and revision diff tracking. |
+  | **Computer Vision & Assets** | **Accessibility Lead** | Computer vision module (`Pillow` + Gemini Vision) for brand hex palette, logo clear-space, and WCAG contrast checks. |
+  | **Database, Auth & Security** | **Platform Lead** | Supabase authentication, Role-Based Access Control (RBAC), `pgvector` indexing, and content privacy isolation. |
 
 ---
 
@@ -151,17 +147,17 @@
 
 ---
 
-### Slide 13: 12 — Complete Team & Participant Details
-* **Headline:** **Team Green Coders — Official Roster**
-* **Official Roster Table:**
-  | S.No | Full Name | Role & Deliverables | Institution & Location |
+### Slide 13: 12 — Engineering Roles & Functional Workstreams
+* **Headline:** **Core Engineering & Functional Workstreams**
+* **Functional Allocation Table:**
+  | S.No | Engineering Discipline | Core Responsibilities & Deliverables | Primary Technical Stack |
   | :---: | :--- | :--- | :--- |
-  | **01** | **Haribhaskaran A** | Team Lead & Backend / AI Architect | Sri Krishna College of Engg & Tech, Coimbatore |
-  | **02** | **Antonio Danish B** | Frontend & Workflow Engineer | Sri Krishna College of Engg & Tech, Coimbatore |
-  | **03** | **Deepadharshan R** | Data Visualization & Analytics Lead | Sri Krishna College of Engg & Tech, Coimbatore |
-  | **04** | **Harish N** | Document Processing & API Engineer | Sri Krishna College of Engg & Tech, Coimbatore |
-  | **05** | **Barath Kumar K** | Computer Vision & Accessibility Engineer | Sri Krishna College of Engg & Tech, Coimbatore |
-  | **06** | **Jaswanth Kannan K** | Database, Auth & Security Engineer | Sri Krishna College of Engg & Tech, Coimbatore |
+  | **01** | **Backend & AI Architecture** | System architecture, FastAPI backend orchestration, and Google Gemini RAG citation pipeline | FastAPI, Google Gemini 2.0 Flash, Python |
+  | **02** | **Frontend & Workflow Engineering** | React (Vite) interface, role-based portals (Manager, Leader, Creator), and interactive diff review | React, Tailwind CSS, Vite, Lucide |
+  | **03** | **Data Visualization & Analytics** | Executive telemetry, recurring violation heatmaps, category score breakdown charts | Recharts, Tailwind CSS |
+  | **04** | **Document Processing & API** | Multi-format ingestion (`.pdf`, `.docx`), text chunking, and revision diff tracking | pypdf, python-docx, FastAPI |
+  | **05** | **Computer Vision & Accessibility** | Brand hex palette matching, logo clear-space detection, and WCAG 2.1 AA text contrast validation | Pillow, Gemini Vision, Canvas API |
+  | **06** | **Database, Auth & Security** | Database schema, pgvector vector store, and enterprise content privacy isolation | Supabase, pgvector, PostgreSQL |
 
 ---
 
@@ -169,6 +165,5 @@
 * **Design:** Minimal closing canvas matching Slide 1 (pure clean off-white canvas `#FAFAFA`).
 * **Centered Typographic Block:**
   - **Title:** Thank You
-  - **Subtitle:** BrandPulse AI — Team Green Coders
-  - **Institution:** Sri Krishna College of Engineering and Technology, Coimbatore
+  - **Subtitle:** BrandPulse AI — Pre-Publication Brand Governance Platform
   - **Footer:** Inkloom AI Brand-Governance Challenge • Round 1: The Plan

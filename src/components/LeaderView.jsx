@@ -31,7 +31,7 @@ export default function LeaderView({
     e.preventDefault();
     if (!commentText.trim()) return;
     onAddComment(activeDraft.id, {
-      author: "Sarah Jenkins (Leader)",
+      author: "Editorial Leader",
       role: "Leader",
       text: commentText.trim()
     });
@@ -61,11 +61,21 @@ export default function LeaderView({
             <div>
               <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                 <UserCheck className="w-4 h-4 text-emerald-600" />
-                <span>Review Queue ({drafts.length})</span>
+                <span>Editorial Review Desk ({drafts.length})</span>
               </h2>
-              <p className="text-[11px] text-slate-500">Drafts pending leadership sign-off</p>
+              <p className="text-[11px] text-slate-500">Departmental publications pending sign-off</p>
             </div>
-            <span className="text-[10px] font-mono text-slate-400">Sarah Jenkins</span>
+            <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+              Active
+            </span>
+          </div>
+
+          {/* Role Isolation Notice */}
+          <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 space-y-1">
+            <span className="font-bold text-slate-800 block">🔒 Creator Content Privacy Protected</span>
+            <p className="text-[10px] text-slate-500 leading-tight">
+              Individual creator drafts remain confidential in creator workspaces. Only designated organizational documents appear in this review desk.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -168,7 +178,7 @@ export default function LeaderView({
                 <div>
                   <strong className="block text-emerald-950">Brand-Certified for Publication</strong>
                   <span className="text-[11px] text-emerald-800">
-                    Formally approved by Sarah Jenkins (Leader). Timestamped immutable audit trail locked.
+                    Formally approved by Editorial Leader. Timestamped immutable audit trail locked.
                   </span>
                 </div>
               </div>
