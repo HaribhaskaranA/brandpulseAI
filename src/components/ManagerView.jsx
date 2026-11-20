@@ -38,11 +38,14 @@ import {
   Paperclip,
   Database,
   RefreshCw,
-  Edit3
+  Edit3,
+  GitCompare
 } from "lucide-react";
 import ReportCard from "./ReportCard";
 import CreatorProfileCard from "./CreatorProfileCard";
 import ComplianceCertificateModal from "./ComplianceCertificateModal";
+import GovernanceVerifiedBadge from "./GovernanceVerifiedBadge";
+import BeforeAfterDiffViewer from "./BeforeAfterDiffViewer";
 import { INITIAL_ANALYTICS, INITIAL_CREATOR_PROFILE, INITIAL_MANAGER_PROFILE } from "../data/initialData";
 
 export default function ManagerView({ 
@@ -119,6 +122,8 @@ export default function ManagerView({
   const [selectedRating, setSelectedRating] = useState(5);
   const [selectedAssessment, setSelectedAssessment] = useState("Brand-Certified");
   const [approvalComment, setApprovalComment] = useState("");
+  const [expandedDiffs, setExpandedDiffs] = useState({});
+  const toggleDiff = (id) => setExpandedDiffs(prev => ({ ...prev, [id]: !prev[id] }));
   
   // Creator Profile Inspect modal state
   const [inspectingCreator, setInspectingCreator] = useState(null);
@@ -472,12 +477,45 @@ export default function ManagerView({
                       </div>
                     </div>
 
+                    {/* Locked Governance Verified Sign-Off Card if Approved */}
+                    {item.status === "Approved" && (
+                      <GovernanceVerifiedBadge 
+                        draft={item} 
+                        reviewerRole="Brand Policy Authority" 
+                        guidelineVersion="Acme Cloud Brand Book v2.1"
+                      />
+                    )}
+
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                       <div className="lg:col-span-8 space-y-2">
-                        <h4 className="text-sm font-extrabold text-slate-900">{item.title}</h4>
-                        <p className="text-xs text-slate-700 leading-relaxed font-sans bg-slate-50 p-3 rounded-lg border border-slate-200">
-                          "{item.content}"
-                        </p>
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-extrabold text-slate-900">{item.title}</h4>
+                          <button
+                            type="button"
+                            onClick={() => toggleDiff(item.id)}
+                            className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
+                          >
+                            <GitCompare className="w-3 h-3 text-emerald-600" />
+                            <span>{expandedDiffs[item.id] ? "Hide Diff" : "Before vs. After Diff"}</span>
+                          </button>
+                        </div>
+
+                        {expandedDiffs[item.id] ? (
+                          <BeforeAfterDiffViewer
+                            originalText={
+                              item.originalContent || 
+                              (item.id === "draft-1" 
+                                ? "Our 100% sick cloud engine guarantees 10x faster speeds than every competitor! Acme Cloud completely demolishes old legacy databases with guaranteed 100% uptime and zero latency anywhere in the world." 
+                                : item.content)
+                            }
+                            revisedText={item.content}
+                            title="Manager Editorial Revision Diff"
+                          />
+                        ) : (
+                          <p className="text-xs text-slate-700 leading-relaxed font-sans bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            "{item.content}"
+                          </p>
+                        )}
 
                         {/* Attached Asset Info (Image or PDF) */}
                         {item.hasImage && item.bannerUrl ? (
@@ -1766,6 +1804,14 @@ export default function ManagerView({
                 </p>
               </div>
             </div>
+
+            {inspectingPost.status === "Approved" && (
+              <GovernanceVerifiedBadge
+                draft={inspectingPost}
+                reviewerRole="Brand Policy Authority"
+                guidelineVersion="Acme Cloud Brand Book v2.1"
+              />
+            )}
 
             {inspectingPost.lastAudit && (
               <div className="space-y-2">

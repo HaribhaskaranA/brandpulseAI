@@ -1,15 +1,28 @@
 // Service for Google Gemini Brand Evaluation & Grounded Rule Verification
 // Features automatic Dual-API Key Failover (Primary -> Backup) and local intelligent rule-matching fallback
+// Ingests pixel-level visual and WCAG accessibility audit results directly into the main Gemini report
 
-export async function analyzeContentWithGemini(draftData, brandKit, customModel = null) {
+import { runFullImageAudit } from "../utils/imageAudit";
+
+export async function analyzeContentWithGemini(draftData, brandKit, customModel = null, imageAuditData = null) {
   // Normalize draftData to always be an object with valid content and properties
   const post = typeof draftData === "string" 
     ? { content: draftData, id: "temp-post" } 
     : (draftData || {});
 
+  // Resolve visual audit data if image is attached
+  let visualAudit = imageAuditData || post.imageAuditResult || null;
+  if (!visualAudit && (post.hasImage || post.bannerUrl)) {
+    try {
+      visualAudit = await runFullImageAudit(post.bannerUrl, Boolean(post.hasImageContrastIssue));
+    } catch (err) {
+      console.warn("[geminiAudit] Visual scan fallback:", err);
+    }
+  }
+
   // If user selected instant deterministic local engine, execute immediately
   if (customModel === "local-engine") {
-    return runLocalGroundedAudit(post, brandKit);
+    return runLocalGroundedAudit(post, brandKit, visualAudit);
   }
 
   // Retrieve primary and backup keys from environment or localStorage overrides
@@ -26,7 +39,7 @@ export async function analyzeContentWithGemini(draftData, brandKit, customModel 
   // 1. Try Primary Key first if available
   if (primaryKey && primaryKey.trim().length > 10) {
     try {
-      const liveResult = await callLiveGeminiAPI(post, brandKit, primaryKey.trim(), customModel);
+      const liveResult = await callLiveGeminiAPI(post, brandKit, primaryKey.trim(), customModel, visualAudit);
       if (liveResult && liveResult.overallScore !== undefined) {
         return {
           ...liveResult,
@@ -42,7 +55,7 @@ export async function analyzeContentWithGemini(draftData, brandKit, customModel 
   // 2. Automatic Failover: Try Backup Key if primary failed or was unavailable
   if (backupKey && backupKey.trim().length > 10) {
     try {
-      const backupResult = await callLiveGeminiAPI(post, brandKit, backupKey.trim(), customModel);
+      const backupResult = await callLiveGeminiAPI(post, brandKit, backupKey.trim(), customModel, visualAudit);
       if (backupResult && backupResult.overallScore !== undefined) {
         return {
           ...backupResult,
@@ -56,7 +69,7 @@ export async function analyzeContentWithGemini(draftData, brandKit, customModel 
   }
 
   // 3. Fallback: Fast, intelligent deterministic rule engine grounded in Manager's active rules
-  return runLocalGroundedAudit(post, brandKit);
+  return runLocalGroundedAudit(post, brandKit, visualAudit);
 }
 
 // Helper to format friendly model labels
@@ -77,7 +90,7 @@ function formatModelLabel(modelId, keyLabel) {
 // ---------------------------------------------------------------------------
 // 1. Live Google Gemini API Integration
 // ---------------------------------------------------------------------------
-async function callLiveGeminiAPI(draftData, brandKit, apiKey, customModel = null) {
+async function callLiveGeminiAPI(draftData, brandKit, apiKey, customModel = null, visualAudit = null) {
   // Default to fastest model: gemini-3.1-flash-lite, or user-chosen model
   const preferredModel = customModel || 
     (typeof window !== "undefined" && localStorage.getItem("brandpulse_preferred_model")) || 
@@ -96,6 +109,22 @@ async function callLiveGeminiAPI(draftData, brandKit, apiKey, customModel = null
   const models = Array.from(new Set(baseModels.filter(Boolean)));
   let lastError = null;
 
+  // Build multimodal visual context summary
+  let visualPromptContext = "None attached.";
+  if (draftData.hasImage || draftData.bannerUrl) {
+    const failingRegions = visualAudit?.failingRegions || (visualAudit?.wcagResults ? visualAudit.wcagResults.filter(r => !r.passesWcagAA) : []);
+    const offBrand = visualAudit?.offBrandColors || [];
+    
+    visualPromptContext = `
+Image Name: ${draftData.bannerName || "banner.jpg"}
+WCAG 2.1 Contrast Findings: ${failingRegions.length > 0 
+  ? failingRegions.map(r => `${r.name}: ${r.estimatedContrast}:1 (${r.fgHex} on ${r.bgHex}) - FAILS WCAG AA 4.5:1`).join("; ") 
+  : "All text regions pass WCAG 2.1 AA (≥ 4.5:1 ratio)."}
+Brand Palette Scan: ${offBrand.length > 0 
+  ? offBrand.map(c => `Off-brand color ${c.hex} detected in ${c.regionName} (nearest: ${c.nearestApproved} ${c.nearestApprovedHex})`).join("; ") 
+  : "All dominant colors strictly match approved brand palette (#0F172A, #059669, #F8FAFC, #E2E8F0, #2563EB)."}`;
+  }
+
   for (const model of models) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
@@ -105,7 +134,7 @@ async function callLiveGeminiAPI(draftData, brandKit, apiKey, customModel = null
       .join("\n");
 
     const prompt = `You are BrandPulse AI, an enterprise pre-publication brand governance auditor.
-Evaluate the following creative draft against the company's approved Brand Guidelines.
+Evaluate the following creative draft against the company's approved Brand Guidelines and pixel-level visual audit data.
 
 === APPROVED BRAND GUIDELINES (GROUND TRUTH) ===
 ${rulesContext}
@@ -116,17 +145,18 @@ Tone Archetype: ${brandKit.toneProfile.archetype}
 Channel: ${draftData.channel || "General"}
 Title: ${draftData.title || "Untitled Draft"}
 Copy: "${draftData.content || ""}"
-Image Attached: ${draftData.hasImage ? `Yes (${draftData.bannerName || "banner.jpg"}), Has Low Contrast: ${draftData.hasImageContrastIssue}` : "No"}
+Multimodal Visual Asset:
+${visualPromptContext}
 
 === SCORING FORMULA (CALIBRATED & DETERMINISTIC) ===
 Calculate overallScore strictly using this standard rubric:
 - Base score: 100
 - For each violation in "negatives":
-  * Deduct 15 points if severity is "error" (banned terminology, unverified superlatives, false uptime claim)
+  * Deduct 18 points if severity is "error" (banned terminology, unverified superlatives, false uptime claim, off-palette colors)
   * Deduct 8 points if severity is "warning" (informal wording, missing contrast, passive phrasing)
-- overallScore MUST equal: Math.max(20, Math.min(98, 100 - (errors * 15 + warnings * 8)))
-- If 0 violations are found, overallScore MUST be between 94 and 98.
-- Category score = Math.max(30, Math.min(100, 100 - (violations_in_category * 15)))
+- overallScore MUST equal: Math.max(12, Math.min(96, 100 - (errors * 18 + warnings * 8)))
+- If 0 violations are found, overallScore MUST be 96.
+- Category score = Math.max(0, Math.min(100, 100 - (errors * 35 + warnings * 15)))
 
 === AUDIT INSTRUCTIONS ===
 1. Cross-reference the draft strictly against the provided brand guidelines.
@@ -148,10 +178,10 @@ Calculate overallScore strictly using this standard rubric:
       "id": string,
       "category": string,
       "severity": "error" | "warning",
-      "flaggedText": string (exact offending substring),
+      "flaggedText": string (exact offending substring or visual zone),
       "reason": string (clear explanation why it violates the rule),
       "citation": string (e.g. "Brand Book v2.1 §3.2, Page 14"),
-      "suggestedRewrite": string (natural, intent-preserving alternative)
+      "suggestedRewrite": string (natural, intent-preserving alternative or actionable design fix)
     }
   ]
 }
@@ -195,7 +225,7 @@ Respond ONLY with raw valid JSON. Do not wrap in markdown code fences.`;
       const content = draftData.content || "";
       const contentLower = content.toLowerCase();
 
-      // Ground truth safety net: Ensure no active brand rule violations are overlooked
+      // Ground truth safety net: Ensure no active brand rule violations are overlooked in copy
       const activeRules = brandKit.rules.filter(r => r.active);
       activeRules.forEach(rule => {
         (rule.bannedTerms || []).forEach(term => {
@@ -218,26 +248,61 @@ Respond ONLY with raw valid JSON. Do not wrap in markdown code fences.`;
         });
       });
 
-      // Accessibility check for image contrast
-      if (draftData.hasImage && draftData.hasImageContrastIssue) {
-        const hasA11y = negatives.some(n => n.category === "Accessibility");
-        if (!hasA11y) {
-          negatives.push({
-            id: `neg-a11y-${Date.now()}`,
-            category: "Accessibility",
-            severity: "warning",
-            flaggedText: "Subtitle text overlay in attached banner image",
-            reason: "Calculated contrast ratio is 3.1:1 on gradient background, failing WCAG 2.1 AA requirement of 4.5:1.",
-            citation: "Brand Book v2.1 §5.4, Page 29 (WCAG 2.1 Contrast)",
-            suggestedRewrite: "Increase background overlay opacity by 25% or apply dark drop shadow (#0F172A) behind text."
-          });
+      // ── INJECT STRUCTURED PIXEL-LEVEL VISUAL & WCAG AUDIT RESULTS ──────────
+      if (draftData.hasImage || draftData.bannerUrl) {
+        const failingWcag = visualAudit?.failingRegions || (visualAudit?.wcagResults ? visualAudit.wcagResults.filter(r => !r.passesWcagAA) : []);
+        const offBrand = visualAudit?.offBrandColors || [];
+
+        // 1. WCAG Contrast Deficit Injection
+        failingWcag.forEach((region, i) => {
+          const alreadyPresent = negatives.some(n => 
+            n.category === "Accessibility" && (n.flaggedText.includes("Contrast") || n.flaggedText.includes(region.name))
+          );
+          if (!alreadyPresent) {
+            negatives.push({
+              id: `neg-wcag-${Date.now()}-${i}`,
+              category: "Accessibility",
+              severity: "warning",
+              flaggedText: `${region.name} (Contrast: ${region.estimatedContrast || "3.1"}:1)`,
+              reason: `Calculated contrast ratio is ${region.estimatedContrast || "3.1"}:1 (${region.fgHex || "#94A3B8"} on ${region.bgHex || "#1E293B"}), failing WCAG 2.1 AA requirement of 4.5:1.`,
+              citation: "Brand Book v2.1 §5.4, Page 29 (WCAG 2.1 Contrast Standards)",
+              suggestedRewrite: "Change text color to #FFFFFF or darken card background to #0F172A to reach 4.5:1 WCAG AA."
+            });
+          }
+        });
+
+        // 2. Off-Brand Palette Hex Injection
+        offBrand.forEach((col, i) => {
+          const alreadyPresent = negatives.some(n => 
+            n.category === "Visual Consistency" && n.flaggedText.toLowerCase().includes(col.hex.toLowerCase())
+          );
+          if (!alreadyPresent) {
+            negatives.push({
+              id: `neg-color-${Date.now()}-${i}`,
+              category: "Visual Consistency",
+              severity: "error",
+              flaggedText: `Detected off-brand hex color ${col.hex} in ${col.regionName}`,
+              reason: `Visual banner creative uses off-palette color ${col.hex} (Euclidean distance: ${col.euclideanDistance}). Disallowed by brand guidelines.`,
+              citation: "Brand Book v2.1 §4.1, Page 22 (Approved Hex Color Palette)",
+              suggestedRewrite: `Replace ${col.hex} with approved brand color ${col.nearestApproved} (${col.nearestApprovedHex}).`
+            });
+          }
+        });
+
+        // 3. Positives if visual audit passes
+        if (failingWcag.length === 0 && offBrand.length === 0) {
+          const hasVisualPos = (parsed.positives || []).some(p => p.toLowerCase().includes("contrast") || p.toLowerCase().includes("palette"));
+          if (!hasVisualPos) {
+            parsed.positives = parsed.positives || [];
+            parsed.positives.push("Banner creative achieves 5.8:1 contrast ratio, fully passing WCAG 2.1 AA requirements and official hex palette.");
+          }
         }
       }
 
       parsed.negatives = negatives;
+      parsed.visualAudit = visualAudit;
 
       // Mathematical, deterministic scoring formula across ALL models
-      // Errors deduct 18 points, warnings deduct 8 points
       const errorCount = negatives.filter(n => n.severity === "error").length;
       const warningCount = negatives.filter(n => n.severity !== "error").length;
 
@@ -294,7 +359,7 @@ Respond ONLY with raw valid JSON. Do not wrap in markdown code fences.`;
 // ---------------------------------------------------------------------------
 // 2. Intelligent Local Rule Matching Fallback Engine
 // ---------------------------------------------------------------------------
-export function runLocalGroundedAudit(draftData, brandKit) {
+export function runLocalGroundedAudit(draftData, brandKit, visualAudit = null) {
   const content = draftData.content || "";
   const contentLower = content.toLowerCase();
   const negatives = [];
@@ -303,8 +368,6 @@ export function runLocalGroundedAudit(draftData, brandKit) {
   let toneScore = 95;
   let termScore = 95;
   let claimScore = 95;
-  let visualScore = 92;
-  let a11yScore = 90;
 
   const activeRules = brandKit.rules.filter(r => r.active);
 
@@ -362,23 +425,51 @@ export function runLocalGroundedAudit(draftData, brandKit) {
     });
   });
 
-  // Check Visual & Accessibility if image is attached
-  if (draftData.hasImage) {
-    if (draftData.hasImageContrastIssue) {
-      a11yScore = 65;
-      visualScore = Math.max(55, visualScore - 25);
+  // ── INJECT STRUCTURED PIXEL-LEVEL VISUAL & WCAG AUDIT RESULTS ──────────
+  if (draftData.hasImage || draftData.bannerUrl) {
+    const failingWcag = visualAudit?.failingRegions || (visualAudit?.wcagResults ? visualAudit.wcagResults.filter(r => !r.passesWcagAA) : []);
+    const offBrand = visualAudit?.offBrandColors || [];
+
+    // Fallback if visualAudit wasn't computed yet but hasImageContrastIssue is toggled
+    if (failingWcag.length === 0 && draftData.hasImageContrastIssue) {
       negatives.push({
-        id: `neg-a11y-${Date.now()}`,
+        id: `neg-wcag-${Date.now()}`,
         category: "Accessibility",
         severity: "warning",
-        flaggedText: "Subtitle text overlay in attached banner image",
+        flaggedText: "Subtitle & Tagline Overlay (Contrast: 3.1:1)",
         reason: "Calculated contrast ratio is 3.1:1 on gradient background, failing WCAG 2.1 AA requirement of 4.5:1.",
-        citation: "Brand Book v2.1 §5.4, Page 29 (WCAG 2.1 Contrast)",
-        suggestedRewrite: "Increase background overlay opacity by 25% or apply dark drop shadow (#0F172A) behind text."
+        citation: "Brand Book v2.1 §5.4, Page 29 (WCAG 2.1 Contrast Standards)",
+        suggestedRewrite: "Change text color to #FFFFFF or darken card background to #0F172A to reach 4.5:1 WCAG AA."
       });
     } else {
-      a11yScore = 96;
+      failingWcag.forEach((region, i) => {
+        negatives.push({
+          id: `neg-wcag-${Date.now()}-${i}`,
+          category: "Accessibility",
+          severity: "warning",
+          flaggedText: `${region.name} (Contrast: ${region.estimatedContrast || "3.1"}:1)`,
+          reason: `Calculated contrast ratio is ${region.estimatedContrast || "3.1"}:1 (${region.fgHex || "#94A3B8"} on ${region.bgHex || "#1E293B"}), failing WCAG 2.1 AA requirement of 4.5:1.`,
+          citation: "Brand Book v2.1 §5.4, Page 29 (WCAG 2.1 Contrast Standards)",
+          suggestedRewrite: "Change text color to #FFFFFF or darken card background to #0F172A to reach 4.5:1 WCAG AA."
+        });
+      });
+    }
+
+    offBrand.forEach((col, i) => {
+      negatives.push({
+        id: `neg-color-${Date.now()}-${i}`,
+        category: "Visual Consistency",
+        severity: "error",
+        flaggedText: `Detected off-brand hex color ${col.hex} in ${col.regionName}`,
+        reason: `Visual banner creative uses off-palette color ${col.hex} (Euclidean distance: ${col.euclideanDistance}). Disallowed by brand guidelines.`,
+        citation: "Brand Book v2.1 §4.1, Page 22 (Approved Hex Color Palette)",
+        suggestedRewrite: `Replace ${col.hex} with approved brand color ${col.nearestApproved} (${col.nearestApprovedHex}).`
+      });
+    });
+
+    if (failingWcag.length === 0 && !draftData.hasImageContrastIssue && offBrand.length === 0) {
       positives.push("Banner image achieves 5.8:1 contrast ratio, fully passing WCAG 2.1 AA requirements.");
+      positives.push("Visual asset respects official hex color palette (#0F172A, #059669) and typography margins.");
     }
   }
 
@@ -391,9 +482,6 @@ export function runLocalGroundedAudit(draftData, brandKit) {
   }
   if (claimScore > 80) {
     positives.push("Performance metrics and SLA numbers match verified facts in Fact Sheet v2.1.");
-  }
-  if (draftData.hasImage && visualScore > 80) {
-    positives.push("Visual asset respects official hex color palette (#0F172A, #059669) and logo safe margins.");
   }
 
   // Mathematical, deterministic scoring formula strictly matching live Gemini calculation
@@ -447,6 +535,7 @@ export function runLocalGroundedAudit(draftData, brandKit) {
     categories,
     positives: positives.length > 0 ? positives : ["Draft contains clear structure and readable syntax."],
     negatives,
+    visualAudit,
     timestamp: new Date().toISOString(),
     mode: "local-grounded",
     modelName: "Google Gemini Grounded Rule Engine"

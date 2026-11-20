@@ -1,220 +1,234 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Palette } from "lucide-react";
 import { runFullImageAudit } from "../utils/imageAudit";
 
 /**
  * ImageAuditOverlay
+ * Renders an aspect-ratio locked visual overlay with percentage bounding boxes
+ * anchored to the rendered creative bounds so boxes never drift across viewports.
+ * 
  * Props:
- *   imageUrl         — URL of the image to analyze
- *   imageAuditResult — pre-computed audit result (or null to compute lazily)
- *   show             — whether overlays are currently visible
- *   onToggle         — callback to toggle show state
+ *   imageUrl         — URL of the creative banner
+ *   imageAuditResult — Pre-calculated audit result (or null to compute automatically)
+ *   show             — Whether overlay boxes are visible
+ *   onToggle         — Toggle overlay visibility
+ *   hasContrastIssue — Optional manual flag for sample violation banner
  */
-export default function ImageAuditOverlay({ imageUrl, imageAuditResult, show, onToggle }) {
+export default function ImageAuditOverlay({ 
+  imageUrl, 
+  imageAuditResult, 
+  show, 
+  onToggle,
+  hasContrastIssue = false 
+}) {
   const [localResult, setLocalResult] = useState(imageAuditResult || null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [activeTooltip, setActiveTooltip] = useState(null);
   const imgRef = useRef(null);
-  const [imgSize, setImgSize] = useState({ width: 0, height: 0 });
-
-  // When show becomes true or imageUrl changes, trigger analysis if no result yet
-  useEffect(() => {
-    if (!imageUrl) return;
-    if (imageAuditResult) {
-      setLocalResult(imageAuditResult);
-      return;
-    }
-    if (show && !localResult && !analyzing) {
-      setAnalyzing(true);
-      runFullImageAudit(imageUrl, false)
-        .then((result) => {
-          setLocalResult(result);
-          setAnalyzing(false);
-        })
-        .catch(() => setAnalyzing(false));
-    }
-  }, [show, imageUrl, imageAuditResult, localResult, analyzing]);
-
-  // Track rendered image dimensions for overlay positioning
-  useEffect(() => {
-    if (!imgRef.current) return;
-    const updateSize = () => {
-      if (imgRef.current) {
-        setImgSize({
-          width: imgRef.current.offsetWidth,
-          height: imgRef.current.offsetHeight
-        });
-      }
-    };
-    updateSize();
-    const observer = new ResizeObserver(updateSize);
-    observer.observe(imgRef.current);
-    return () => observer.disconnect();
-  }, [imageUrl]);
 
   // Sync external result into local state
   useEffect(() => {
-    if (imageAuditResult) setLocalResult(imageAuditResult);
+    if (imageAuditResult) {
+      setLocalResult(imageAuditResult);
+    }
   }, [imageAuditResult]);
+
+  // Run audit if result missing or when imageUrl / contrast flag changes
+  useEffect(() => {
+    if (!imageUrl) return;
+
+    let isMounted = true;
+    setAnalyzing(true);
+
+    runFullImageAudit(imageUrl, hasContrastIssue)
+      .then((res) => {
+        if (isMounted) {
+          setLocalResult(res);
+          setAnalyzing(false);
+        }
+      })
+      .catch((err) => {
+        console.warn("[ImageAuditOverlay] Analysis error:", err);
+        if (isMounted) {
+          setAnalyzing(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [imageUrl, hasContrastIssue]);
 
   if (!imageUrl) return null;
 
-  // Build overlay boxes for each quadrant
-  const overlays = [];
-  if (show && localResult) {
-    const { wcagResults = [], quadrantAnalysis = [], offBrandColors = [], dominantColors = [] } = localResult;
-
-    // WCAG contrast overlays — per quadrant region (map text regions to position)
-    const textRegionPositions = [
-      // top 15%
-      { name: "Top Banner (15%)", top: "0%", left: "0%", width: "100%", height: "15%", type: "contrast" },
-      // bottom 20%
-      { name: "Bottom Footer (20%)", top: "80%", left: "0%", width: "100%", height: "20%", type: "contrast" },
-      // center band 40-60%
-      { name: "Center Band (40–60%)", top: "40%", left: "0%", width: "100%", height: "20%", type: "contrast" },
-      // subtitle overlay (synthetic fallback)
-      { name: "Subtitle Overlay", top: "75%", left: "5%", width: "60%", height: "12%", type: "contrast" }
-    ];
-
-    for (const region of wcagResults) {
-      if (!region.passesWcagAA) {
-        const pos = textRegionPositions.find((p) => p.name === region.name) || {
-          top: "60%", left: "5%", width: "60%", height: "12%", type: "contrast"
-        };
-        overlays.push({
-          type: "contrast",
-          style: {
-            top: pos.top, left: pos.left, width: pos.width, height: pos.height
-          },
-          tooltip: `⚠️ Low Contrast: ${region.estimatedContrast}:1 (needs 4.5:1)\nFG: ${region.fgHex} → BG: ${region.bgHex}`,
-          label: `${region.estimatedContrast}:1`
-        });
-      }
-    }
-
-    // Off-brand color overlays — per quadrant
-    const quadrantPositions = [
-      { name: "Top-Left", top: "0%", left: "0%", width: "50%", height: "50%" },
-      { name: "Top-Right", top: "0%", left: "50%", width: "50%", height: "50%" },
-      { name: "Bottom-Left", top: "50%", left: "0%", width: "50%", height: "50%" },
-      { name: "Bottom-Right", top: "50%", left: "50%", width: "50%", height: "50%" }
-    ];
-
-    for (const color of dominantColors) {
-      if (!color.isApproved) {
-        const pos = quadrantPositions.find((p) => p.name === color.regionName);
-        if (pos) {
-          overlays.push({
-            type: "offbrand",
-            style: { top: pos.top, left: pos.left, width: pos.width, height: pos.height },
-            tooltip: `🟡 Off-Brand Color\nDetected: ${color.hex}\nNearest approved: ${color.nearestApproved} (${color.nearestApprovedHex})\nΔ ${color.euclideanDistance} RGB distance`,
-            label: color.hex
-          });
-        }
-      }
-    }
-  }
-
-  const hasIssues = localResult && (!localResult.overallPass || (localResult.wcagResults || []).some((r) => !r.passesWcagAA));
+  // Extract percentage bounding boxes directly from audit result
+  const boxes = localResult?.boundingBoxes || [];
+  const failingWcagCount = localResult?.failingRegions?.length || 0;
+  const offBrandCount = localResult?.offBrandColors?.length || 0;
+  const isOverallPass = localResult?.overallPass ?? (failingWcagCount === 0 && offBrandCount === 0);
 
   return (
-    <div className="space-y-2">
-      {/* Image + Overlay Container */}
-      <div className="relative rounded-lg overflow-hidden border border-slate-300">
+    <div className="space-y-2 select-none">
+      {/* Aspect-Ratio Locked Container: anchors percentage coordinates accurately */}
+      <div className="relative w-full aspect-[16/6] min-h-[140px] max-h-[260px] rounded-xl overflow-hidden border border-slate-300 bg-slate-950 shadow-inner">
+        {/* Rendered Creative Image */}
         <img
           ref={imgRef}
           src={imageUrl}
-          alt="Creative Preview with Audit Overlay"
-          className="w-full h-36 object-cover block"
-          onLoad={() => {
-            if (imgRef.current) {
-              setImgSize({
-                width: imgRef.current.offsetWidth,
-                height: imgRef.current.offsetHeight
-              });
-            }
-          }}
+          alt="Audited Visual Creative"
+          crossOrigin="anonymous"
+          className="w-full h-full object-cover block"
         />
 
-        {/* Audit Overlays */}
-        {show && overlays.map((ov, i) => (
-          <div
-            key={i}
-            title={ov.tooltip}
-            className={`absolute pointer-events-auto cursor-help border-2 flex items-end justify-start p-1 ${
-              ov.type === "contrast"
-                ? "bg-red-500/20 border-red-500"
-                : "bg-amber-400/20 border-amber-500"
-            }`}
-            style={{ ...ov.style, zIndex: 10 }}
-          >
-            <span className={`text-[9px] font-mono font-bold px-1 rounded ${
-              ov.type === "contrast"
-                ? "bg-red-600 text-white"
-                : "bg-amber-500 text-white"
-            }`}>
-              {ov.label}
-            </span>
-          </div>
-        ))}
+        {/* Bounding Box Overlays (Percentage-Anchored) */}
+        {show && boxes.map((box, idx) => {
+          const isContrastFail = box.type === "contrast";
+          const isOffBrand = box.type === "offbrand";
+          const isHovered = activeTooltip === box.id;
 
-        {/* Loading spinner */}
+          const borderColor = isContrastFail 
+            ? "border-red-500 bg-red-500/25 shadow-[0_0_12px_rgba(239,68,68,0.4)]" 
+            : isOffBrand 
+              ? "border-amber-400 bg-amber-400/25 shadow-[0_0_12px_rgba(245,158,11,0.4)]"
+              : "border-emerald-400 bg-emerald-500/15";
+
+          const badgeBg = isContrastFail 
+            ? "bg-red-600 text-white" 
+            : isOffBrand 
+              ? "bg-amber-500 text-slate-950 font-black" 
+              : "bg-emerald-600 text-white";
+
+          return (
+            <div
+              key={box.id || idx}
+              onClick={() => setActiveTooltip(isHovered ? null : box.id)}
+              onMouseEnter={() => setActiveTooltip(box.id)}
+              onMouseLeave={() => setActiveTooltip(null)}
+              className={`absolute border-2 transition-all cursor-pointer pointer-events-auto z-10 flex flex-col justify-between p-1 rounded-sm ${borderColor}`}
+              style={{
+                top: box.top,
+                left: box.left,
+                width: box.width,
+                height: box.height
+              }}
+            >
+              {/* Region Label Tag */}
+              <div className="flex items-center justify-between gap-1">
+                <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded font-bold tracking-tight shadow-xs ${badgeBg}`}>
+                  {box.label || (isContrastFail ? "WCAG Fail" : "Off-Brand")}
+                </span>
+                {isContrastFail && (
+                  <span className="text-[8px] font-mono font-bold text-red-200 bg-red-950/80 px-1 rounded">
+                    &lt;4.5:1
+                  </span>
+                )}
+              </div>
+
+              {/* Interactive Tooltip Card */}
+              {isHovered && (
+                <div 
+                  className="absolute bottom-full left-0 mb-1.5 w-64 p-2.5 bg-slate-900/95 backdrop-blur-md text-white text-[11px] rounded-lg shadow-xl border border-slate-700 z-50 pointer-events-none animate-fadeIn"
+                  style={{ minWidth: "220px" }}
+                >
+                  <div className="flex items-center gap-1.5 font-bold pb-1 mb-1 border-b border-slate-700">
+                    {isContrastFail ? (
+                      <>
+                        <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                        <span className="text-red-300">WCAG 2.1 AA Contrast Deficit</span>
+                      </>
+                    ) : isOffBrand ? (
+                      <>
+                        <Palette className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span className="text-amber-300">Unapproved Brand Palette Color</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span className="text-emerald-300">Brand & WCAG Verified</span>
+                      </>
+                    )}
+                  </div>
+
+                  <p className="font-mono text-[10px] text-slate-300 leading-snug whitespace-pre-line">
+                    {box.tooltip}
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Loading Spinner */}
         {analyzing && (
-          <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center z-20">
-            <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-lg">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-              <span className="text-xs font-semibold text-slate-700">Analyzing pixels…</span>
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center z-30">
+            <div className="flex items-center gap-2 bg-slate-900/90 text-white border border-slate-700 px-3 py-1.5 rounded-lg shadow-lg text-xs font-mono">
+              <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+              <span>Scanning Canvas Pixels & Luminance...</span>
             </div>
           </div>
         )}
 
-        {/* Toggle button */}
+        {/* Top-Right Toggle Overlay Button */}
         <button
           type="button"
           onClick={onToggle}
-          title={show ? "Hide audit overlay" : "Show WCAG audit overlay"}
-          className={`absolute top-2 right-2 z-30 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold shadow-md transition-all ${
+          className={`absolute top-2.5 right-2.5 z-20 px-2.5 py-1 rounded-md text-[10px] font-bold font-mono tracking-wide shadow-md flex items-center gap-1.5 transition-all cursor-pointer ${
             show
-              ? "bg-emerald-600 text-white"
-              : "bg-white/90 text-slate-700 border border-emerald-500"
+              ? "bg-emerald-600 text-white ring-2 ring-emerald-400/50"
+              : "bg-slate-900/85 hover:bg-slate-900 text-slate-200 border border-slate-700"
           }`}
+          title={show ? "Hide visual audit bounding boxes" : "Show pixel-level WCAG & brand color overlay"}
         >
-          {show ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-          {show ? "Hide Overlay" : "Audit Overlay"}
+          {show ? <EyeOff className="w-3 h-3 text-emerald-200" /> : <Eye className="w-3 h-3 text-emerald-400" />}
+          <span>{show ? "Hide Overlay" : "Toggle Audit Overlay"}</span>
         </button>
 
-        {/* Status badge */}
-        {localResult && !analyzing && (
-          <div className={`absolute top-2 left-2 z-20 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold ${
-            localResult.overallPass
-              ? "bg-emerald-600/90 text-white"
-              : "bg-red-600/90 text-white"
-          }`}>
-            {localResult.overallPass ? "✓ PASS" : "✗ ISSUES"}
+        {/* Top-Left Status Badge */}
+        {!analyzing && (
+          <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5">
+            <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider shadow-sm flex items-center gap-1 ${
+              isOverallPass 
+                ? "bg-emerald-600 text-white" 
+                : "bg-red-600 text-white"
+            }`}>
+              {isOverallPass ? (
+                <>
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>WCAG & Brand Compliant</span>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="w-3 h-3" />
+                  <span>{failingWcagCount > 0 ? "WCAG AA Deficit" : "Off-Palette Colors"}</span>
+                </>
+              )}
+            </span>
           </div>
         )}
       </div>
 
-      {/* Legend */}
+      {/* Audit Legend & Summary Row */}
       {show && (
-        <div className="flex items-center gap-4 text-[10px] text-slate-600 font-mono px-1">
-          <span className="flex items-center gap-1">
-            <span className="inline-block w-3 h-3 rounded-sm bg-red-500/70 border border-red-600"></span>
-            🔴 Low Contrast (WCAG AA Fail)
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="inline-block w-3 h-3 rounded-sm bg-amber-400/70 border border-amber-500"></span>
-            🟡 Off-Brand Color
+        <div className="flex items-center justify-between flex-wrap gap-2 px-1 text-[11px] font-mono text-slate-600">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-xs bg-red-500 border border-red-600 inline-block"></span>
+              <strong className="text-red-700">Coral Red:</strong> Low Contrast (&lt; 4.5:1 AA)
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-xs bg-amber-400 border border-amber-500 inline-block"></span>
+              <strong className="text-amber-700">Amber:</strong> Off-Palette Hex
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-xs bg-emerald-500 border border-emerald-600 inline-block"></span>
+              <strong className="text-emerald-700">Emerald:</strong> Verified
+            </span>
+          </div>
+
+          <span className="text-[10px] text-slate-500">
+            Hover boxes for exact contrast & hex coordinates
           </span>
         </div>
-      )}
-
-      {/* Audit summary line */}
-      {localResult && !analyzing && (
-        <p className={`text-[10px] font-mono px-1 ${
-          localResult.overallPass ? "text-emerald-700" : "text-red-700"
-        }`}>
-          {localResult.summary}
-        </p>
       )}
     </div>
   );

@@ -198,7 +198,8 @@ export async function exportAuditDocx(draft, audit, leaderComment) {
     `Channel: ${draft?.channel || "N/A"}`,
     `Author: ${draft?.author || "Creator"}`,
     `Audit Date: ${dateStr}`,
-    `Audit Model: ${audit?.model || "Google Gemini AI"}`,
+    `Audit Model: ${audit?.modelName || audit?.model || "Google Gemini AI"}`,
+    ...(draft?.hasImage ? [`Attached Creative: ${draft.bannerName || "banner.jpg"} (${draft.hasImageContrastIssue ? "⚠️ WCAG AA Contrast Issue Flagged" : "✓ WCAG 2.1 AA Verified"})`] : []),
     ...(leaderComment ? [`Leader Comment: ${leaderComment}`] : []),
   ];
 

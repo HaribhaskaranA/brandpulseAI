@@ -27,6 +27,8 @@ import {
 import ReportCard from "./ReportCard";
 import ComplianceCertificateModal from "./ComplianceCertificateModal";
 import ImageAuditOverlay from "./ImageAuditOverlay";
+import GovernanceVerifiedBadge from "./GovernanceVerifiedBadge";
+import BeforeAfterDiffViewer from "./BeforeAfterDiffViewer";
 import { exportAuditDocx } from "../utils/docxExport";
 import { runFullImageAudit } from "../utils/imageAudit";
 import { INITIAL_LEADER_PROFILE } from "../data/initialData";
@@ -441,65 +443,42 @@ export default function LeaderView({
                     </div>
                   </div>
 
-                  {/* Certified Status Banner if Approved */}
+                  {/* Locked Governance Verified Sign-Off Card if Approved */}
                   {activeDraft.status === "Approved" && (
-                    <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-xl space-y-2 text-xs text-emerald-950">
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                          <strong className="text-emerald-950 text-sm">Formally Brand-Certified for Publication</strong>
-                        </div>
-                        <div className="flex items-center gap-1 text-amber-500">
-                          {[...Array(activeDraft.reviewRating || 5)].map((_, i) => (
-                            <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                          ))}
-                          <span className="font-mono font-bold text-xs ml-1 text-slate-900">
-                            ({activeDraft.reviewRating || 5}/5 - {activeDraft.reviewAssessment || "Exceeds Standard"})
-                          </span>
-                        </div>
-                      </div>
-
-                      {activeDraft.reviewComment && (
-                        <p className="text-[11px] text-emerald-900 italic pl-3 border-l-2 border-emerald-500">
-                          "{activeDraft.reviewComment}"
-                        </p>
-                      )}
-                    </div>
+                    <GovernanceVerifiedBadge 
+                      draft={activeDraft} 
+                      reviewerRole="Editorial Leader (Sarah Chen)" 
+                      guidelineVersion="Acme Cloud Brand Book v2.1 (Q4 Compliance Standard)"
+                    />
                   )}
 
-                  {/* Diff Inspector Toggle & Content */}
+                  {/* Side-by-Side Diff Inspector & Content View */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-700">Content Inspection</span>
+                      <span className="text-xs font-bold text-slate-700">Content Inspection & Editorial Comparison</span>
                       <button
                         type="button"
                         onClick={() => setShowDiff(!showDiff)}
-                        className="text-[11px] font-bold text-emerald-700 hover:underline flex items-center gap-1 cursor-pointer"
+                        className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200 flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
                       >
-                        <GitCompare className="w-3.5 h-3.5" />
-                        <span>{showDiff ? "Hide Diff" : "Show Brand Fix Diff"}</span>
+                        <GitCompare className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>{showDiff ? "Hide Before / After Diff" : "Show Side-by-Side Diff"}</span>
                       </button>
                     </div>
 
                     {showDiff ? (
-                      /* Diff Comparison View */
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-                        <div className="space-y-1">
-                          <span className="font-mono text-[10px] text-red-600 font-bold uppercase">Original Draft (With Superlatives)</span>
-                          <div className="p-2.5 bg-red-50/50 rounded-lg border border-red-200 text-slate-800 line-through">
-                            "Our 100% sick cloud engine guarantees 10x faster speeds than every competitor! Acme Cloud completely demolishes old legacy databases with guaranteed 100% uptime and zero latency."
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <span className="font-mono text-[10px] text-emerald-700 font-bold uppercase">Intent-Preserving Brand Fix (Ground Truth)</span>
-                          <div className="p-2.5 bg-emerald-50 rounded-lg border border-emerald-300 text-slate-900 font-medium">
-                            "{activeDraft.content}"
-                          </div>
-                        </div>
-                      </div>
+                      <BeforeAfterDiffViewer 
+                        originalText={
+                          activeDraft.originalContent || 
+                          (activeDraft.id === "draft-1" 
+                            ? "Our 100% sick cloud engine guarantees 10x faster speeds than every competitor! Acme Cloud completely demolishes old legacy databases with guaranteed 100% uptime and zero latency anywhere in the world." 
+                            : (activeDraft.history?.find(h => h.type === "audit" || h.type === "create")?.note || activeDraft.content))
+                        }
+                        revisedText={activeDraft.content}
+                        title="Editorial Revision Diff (Pre-Audit vs. Brand-Aligned)"
+                      />
                     ) : (
-                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-900 leading-relaxed font-sans">
+                      <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-900 leading-relaxed font-sans shadow-inner">
                         {activeDraft.content}
                       </div>
                     )}
@@ -528,6 +507,7 @@ export default function LeaderView({
                         imageAuditResult={imageAuditResult}
                         show={showImageOverlay}
                         onToggle={() => setShowImageOverlay(!showImageOverlay)}
+                        hasContrastIssue={activeDraft.hasImageContrastIssue}
                       />
 
                       {imageAuditResult?.dominantColors?.length > 0 && (
