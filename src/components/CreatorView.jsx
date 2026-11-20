@@ -25,10 +25,16 @@ import {
   FileSpreadsheet,
   Paperclip,
   Zap,
-  X
+  X,
+  Download,
+  AlertOctagon
 } from "lucide-react";
 import ReportCard from "./ReportCard";
 import CreatorProfileCard from "./CreatorProfileCard";
+import ImageAuditOverlay from "./ImageAuditOverlay";
+import { exportAuditDocx } from "../utils/docxExport";
+import { extractDocxText, extractPdfText } from "../utils/docIngestion";
+import { runFullImageAudit } from "../utils/imageAudit";
 
 export default function CreatorView({ 
   draft, 
@@ -52,6 +58,25 @@ export default function CreatorView({
     return (typeof window !== "undefined" && localStorage.getItem("brandpulse_preferred_model")) || "gemini-3.1-flash-lite";
   });
   const fileInputRef = useRef(null);
+  const [extractionToast, setExtractionToast] = useState(null);
+  const [imageAuditResult, setImageAuditResult] = useState(null);
+  const [showImageOverlay, setShowImageOverlay] = useState(false);
+
+  // Automatically run pixel & WCAG audit on attached banner
+  React.useEffect(() => {
+    if (draft.hasImage && draft.bannerUrl) {
+      runFullImageAudit(draft.bannerUrl, draft.hasImageContrastIssue)
+        .then((res) => setImageAuditResult(res))
+        .catch(() => {});
+    } else {
+      setImageAuditResult(null);
+    }
+  }, [draft.bannerUrl, draft.hasImageContrastIssue]);
+
+  const showToast = (msg, type = "success") => {
+    setExtractionToast({ msg, type });
+    setTimeout(() => setExtractionToast(null), 3500);
+  };
 
   const handleAuditModelChange = (model) => {
     setSelectedAuditModel(model);
@@ -82,13 +107,14 @@ export default function CreatorView({
   };
 
   // Generic File Upload Handler supporting Images, PDFs, DOCX, TXT
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const isImage = file.type.startsWith("image/");
     const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-    const isDoc = file.name.toLowerCase().endsWith(".docx") || file.name.toLowerCase().endsWith(".txt");
+    const isDocx = file.name.toLowerCase().endsWith(".docx");
+    const isTxt = file.name.toLowerCase().endsWith(".txt");
 
     const sizeFormatted = file.size > 1024 * 1024 
       ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` 
@@ -108,13 +134,76 @@ export default function CreatorView({
         });
       };
       reader.readAsDataURL(file);
-    } else {
-      // PDF or Document
+    } else if (isDocx) {
+      // Extract text from DOCX and populate draft content
       const estimatedPages = Math.max(1, Math.min(18, Math.round(file.size / 75000)));
       onUpdateDraft({
         ...draft,
         hasImage: false,
-        assetType: isPdf ? "pdf" : "document",
+        assetType: "document",
+        bannerName: file.name,
+        assetSize: sizeFormatted,
+        pageCount: estimatedPages,
+        bannerUrl: ""
+      });
+      try {
+        const text = await extractDocxText(file);
+        if (text && text.trim().length > 0) {
+          onUpdateDraft({
+            ...draft,
+            hasImage: false,
+            assetType: "document",
+            bannerName: file.name,
+            assetSize: sizeFormatted,
+            pageCount: estimatedPages,
+            bannerUrl: "",
+            content: text.trim()
+          });
+          showToast("Text extracted from document");
+        }
+      } catch (err) {
+        console.warn("[CreatorView] DOCX extraction failed:", err);
+        showToast("Could not extract text from .docx", "error");
+      }
+    } else if (isPdf) {
+      // Attempt PDF text extraction
+      const estimatedPages = Math.max(1, Math.min(18, Math.round(file.size / 75000)));
+      onUpdateDraft({
+        ...draft,
+        hasImage: false,
+        assetType: "pdf",
+        bannerName: file.name,
+        assetSize: sizeFormatted,
+        pageCount: estimatedPages,
+        bannerUrl: ""
+      });
+      try {
+        const text = await extractPdfText(file);
+        if (text && text.trim().length > 0) {
+          onUpdateDraft({
+            ...draft,
+            hasImage: false,
+            assetType: "pdf",
+            bannerName: file.name,
+            assetSize: sizeFormatted,
+            pageCount: estimatedPages,
+            bannerUrl: "",
+            content: text.trim()
+          });
+          showToast("Text extracted from PDF");
+        } else {
+          showToast("PDF loaded (text extraction limited — please paste copy manually)", "info");
+        }
+      } catch (err) {
+        console.warn("[CreatorView] PDF extraction failed:", err);
+      }
+    } else {
+      // TXT or other document
+      const estimatedPages = Math.max(1, Math.min(18, Math.round(file.size / 75000)));
+      onUpdateDraft({
+        ...draft,
+        hasImage: false,
+        assetType: "document",
         bannerName: file.name,
         assetSize: sizeFormatted,
         pageCount: estimatedPages,
@@ -153,6 +242,18 @@ export default function CreatorView({
     });
   };
 
+  const handleLoadSampleViolationBanner = () => {
+    onUpdateDraft({
+      ...draft,
+      hasImage: true,
+      assetType: "image",
+      bannerUrl: "https://images.unsplash.com/photo-1614680376739-414d95ff43df?w=800&auto=format&fit=crop&q=80",
+      bannerName: "acme-violation-banner-contrast-fail.png",
+      assetSize: "1.2 MB",
+      hasImageContrastIssue: true
+    });
+  };
+
   const handleRemoveAsset = () => {
     onUpdateDraft({
       ...draft,
@@ -174,6 +275,22 @@ export default function CreatorView({
 
   return (
     <div className="space-y-4">
+      
+      {/* Extraction Toast */}
+      {extractionToast && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2 animate-fadeIn ${
+          extractionToast.type === "error" 
+            ? "bg-red-100 text-red-900 border border-red-300" 
+            : extractionToast.type === "info"
+              ? "bg-blue-100 text-blue-900 border border-blue-300"
+              : "bg-emerald-100 text-emerald-900 border border-emerald-300"
+        }`}>
+          {extractionToast.type === "error" 
+            ? <AlertOctagon className="w-4 h-4 shrink-0" />
+            : <CheckCircle2 className="w-4 h-4 shrink-0" />}
+          <span>{extractionToast.msg}</span>
+        </div>
+      )}
       
       {/* Sub-Tabs: Creative Studio vs Profile & Performance */}
       <div className="flex items-center justify-between flex-wrap gap-3 pb-2 border-b border-slate-200">
@@ -390,12 +507,21 @@ export default function CreatorView({
                       >
                         + Sample PDF
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={handleLoadSampleViolationBanner}
+                        className="text-[11px] font-mono text-amber-700 hover:underline font-bold"
+                        title="Load sample banner with low contrast to test pixel-level WCAG overlay"
+                      >
+                        + Sample Violation Banner
+                      </button>
                     </div>
                   </div>
 
                   {/* DISPLAY ATTACHED ASSET (Image or Document) */}
                   {(draft.hasImage || draft.assetType === "image") && draft.bannerUrl ? (
-                    /* Image Asset Card */
+                    /* Image Asset Card with Pixel-Level WCAG & Color Audit Overlay */
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2">
@@ -417,6 +543,15 @@ export default function CreatorView({
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
+                            onClick={() => setShowImageOverlay(!showImageOverlay)}
+                            className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-300 flex items-center gap-1 shadow-2xs"
+                          >
+                            <Eye className="w-3 h-3 text-emerald-600" />
+                            <span>{showImageOverlay ? "Hide Overlay" : "Toggle Audit Overlay"}</span>
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={toggleImageContrast}
                             className="text-[11px] font-medium text-slate-600 hover:text-slate-900 underline"
                           >
@@ -433,21 +568,36 @@ export default function CreatorView({
                         </div>
                       </div>
 
-                      <div className="relative rounded-lg overflow-hidden border border-slate-300 max-h-48 group">
-                        <img
-                          src={draft.bannerUrl}
-                          alt="Creative Preview"
-                          className="w-full h-36 object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-3">
-                          <div className="text-white text-xs space-y-0.5">
-                            <div className="font-bold">Next-Gen Enterprise Cloud Engine</div>
-                            <div className={`text-[11px] ${draft.hasImageContrastIssue ? "text-slate-400 font-normal" : "text-white font-semibold"}`}>
-                              {draft.hasImageContrastIssue ? "Sub-optimal subtitle contrast ratio" : "High contrast verified typography"}
-                            </div>
+                      {/* Interactive Canvas WCAG & Brand Palette Overlay */}
+                      <ImageAuditOverlay
+                        imageUrl={draft.bannerUrl}
+                        imageAuditResult={imageAuditResult}
+                        show={showImageOverlay}
+                        onToggle={() => setShowImageOverlay(!showImageOverlay)}
+                      />
+
+                      {/* Detected Dominant Hex Palette (from HTML5 Canvas pixel sampling) */}
+                      {imageAuditResult?.dominantColors?.length > 0 && (
+                        <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                          <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
+                            <span className="font-bold uppercase">Pixel-Extracted Dominant Hex Palette:</span>
+                            <span>Euclidean RGB vs Acme Brand Kit v2.1</span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {imageAuditResult.dominantColors.map((col, idx) => (
+                              <div key={idx} className="p-1.5 bg-white rounded border border-slate-200 flex items-center gap-2">
+                                <div className="w-4 h-4 rounded-xs border border-slate-300 shrink-0" style={{ backgroundColor: col.hex }}></div>
+                                <div className="overflow-hidden">
+                                  <div className="text-[10px] font-mono font-bold text-slate-900">{col.hex}</div>
+                                  <div className={`text-[9px] font-semibold truncate ${col.isApproved ? "text-emerald-700" : "text-amber-600"}`}>
+                                    {col.isApproved ? "✓ Approved" : "⚠ Off-Brand"}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   ) : (draft.assetType === "pdf" || draft.assetType === "document" || (draft.bannerName && draft.bannerName.toLowerCase().endsWith(".pdf"))) ? (
                     /* PDF / Document Asset Card */
@@ -613,10 +763,22 @@ export default function CreatorView({
                 </div>
 
                 {draft.lastAudit ? (
-                  <ReportCard
-                    audit={draft.lastAudit}
-                    onApplyFix={onApplyFix}
-                  />
+                  <div className="space-y-3">
+                    <ReportCard
+                      audit={draft.lastAudit}
+                      onApplyFix={onApplyFix}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => exportAuditDocx(draft, draft.lastAudit)}
+                      className="w-full py-2.5 px-3 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg shadow-2xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                      title="Download Microsoft Word (.docx) audit report with inline yellow highlights and structured review callouts"
+                    >
+                      <Download className="w-4 h-4 text-emerald-600" />
+                      <span>Export Reviewed .docx (Tracked Changes)</span>
+                    </button>
+                  </div>
                 ) : (
                   <div className="p-8 text-center space-y-3 bg-slate-50 rounded-xl border border-slate-200">
                     <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">

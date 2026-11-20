@@ -21,10 +21,14 @@ import {
   Lock,
   User,
   Zap,
-  RefreshCw
+  RefreshCw,
+  Download
 } from "lucide-react";
 import ReportCard from "./ReportCard";
 import ComplianceCertificateModal from "./ComplianceCertificateModal";
+import ImageAuditOverlay from "./ImageAuditOverlay";
+import { exportAuditDocx } from "../utils/docxExport";
+import { runFullImageAudit } from "../utils/imageAudit";
 import { INITIAL_LEADER_PROFILE } from "../data/initialData";
 
 export default function LeaderView({ 
@@ -60,8 +64,20 @@ export default function LeaderView({
   const [selectedRating, setSelectedRating] = useState(5);
   const [selectedAssessment, setSelectedAssessment] = useState("Exceeds Standard");
   const [approvalComment, setApprovalComment] = useState("");
+  const [showImageOverlay, setShowImageOverlay] = useState(false);
+  const [imageAuditResult, setImageAuditResult] = useState(null);
 
   const activeDraft = drafts.find(d => d.id === selectedDraftId) || drafts[0];
+
+  React.useEffect(() => {
+    if (activeDraft?.hasImage && activeDraft?.bannerUrl) {
+      runFullImageAudit(activeDraft.bannerUrl, activeDraft.hasImageContrastIssue)
+        .then((res) => setImageAuditResult(res))
+        .catch(() => {});
+    } else {
+      setImageAuditResult(null);
+    }
+  }, [activeDraft?.bannerUrl, activeDraft?.hasImageContrastIssue]);
 
   const handlePostComment = (e) => {
     e.preventDefault();
@@ -379,7 +395,19 @@ export default function LeaderView({
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {activeDraft.lastAudit && (
+                        <button
+                          type="button"
+                          onClick={() => exportAuditDocx(activeDraft, activeDraft.lastAudit, activeDraft.reviewComment)}
+                          className="px-3.5 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
+                          title="Download Microsoft Word report with annotated copy and review comments"
+                        >
+                          <Download className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Export Reviewed .docx</span>
+                        </button>
+                      )}
+
                       {activeDraft.status === "Approved" ? (
                         <button
                           type="button"
@@ -477,20 +505,49 @@ export default function LeaderView({
                     )}
                   </div>
 
-                  {/* Attached Creative Preview */}
+                  {/* Attached Creative Preview with Pixel-Level WCAG Audit Overlay */}
                   {activeDraft.hasImage && activeDraft.bannerUrl && (
-                    <div className="space-y-1.5">
-                      <span className="text-xs font-bold text-slate-700">Attached Visual Creative</span>
-                      <div className="rounded-lg overflow-hidden border border-slate-200 max-h-48 relative">
-                        <img
-                          src={activeDraft.bannerUrl}
-                          alt="Banner preview"
-                          className="w-full h-36 object-cover"
-                        />
-                        <div className="absolute top-2 right-2 px-2 py-0.5 bg-slate-900/80 text-white text-[10px] font-mono rounded backdrop-blur-xs">
-                          {activeDraft.bannerName}
+                    <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-800">Attached Visual Creative:</span>
+                          <span className="text-xs font-mono text-slate-500">{activeDraft.bannerName}</span>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowImageOverlay(!showImageOverlay)}
+                          className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 bg-white px-2.5 py-1 rounded border border-emerald-300 flex items-center gap-1 shadow-2xs cursor-pointer"
+                        >
+                          <Eye className="w-3 h-3 text-emerald-600" />
+                          <span>{showImageOverlay ? "Hide Audit Overlay" : "Inspect Pixel Overlay"}</span>
+                        </button>
                       </div>
+
+                      <ImageAuditOverlay
+                        imageUrl={activeDraft.bannerUrl}
+                        imageAuditResult={imageAuditResult}
+                        show={showImageOverlay}
+                        onToggle={() => setShowImageOverlay(!showImageOverlay)}
+                      />
+
+                      {imageAuditResult?.dominantColors?.length > 0 && (
+                        <div className="pt-2 border-t border-slate-200 space-y-1">
+                          <span className="text-[10px] font-mono font-bold text-slate-500 uppercase block">
+                            Pixel-Extracted Palette:
+                          </span>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                            {imageAuditResult.dominantColors.map((col, idx) => (
+                              <div key={idx} className="p-1 bg-white rounded border border-slate-200 flex items-center gap-1.5 text-[10px]">
+                                <div className="w-3 h-3 rounded-xs border shrink-0" style={{ backgroundColor: col.hex }}></div>
+                                <span className="font-mono font-bold">{col.hex}</span>
+                                <span className={`text-[9px] font-bold ${col.isApproved ? "text-emerald-700" : "text-amber-600"}`}>
+                                  {col.isApproved ? "✓" : "⚠"}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
